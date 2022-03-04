@@ -41,7 +41,8 @@ There are three ingredients to make a Deep Link Meta Page:
 
 We currently offer services for generating bulk self-sovereign identities and printing their respective QR-codes onto heat transfer for easy application to common clothing. We partnered with a clothing boutique at Y-Que trading post in Los Feliz, to prototype and distribute our first implementation.
 
-[[/static/img/dlmp_example.jpg|Example DLMP]]
+[[https://github.com/Tsangares/DLMP/blob/master/static/img/dlmp_example.jpg|Example DLMP]]
+
 # Value
 Deep Link Meta Pages (DLMP) expands the experience and utility associated with clothing by adding a separate dimension of interaction. When an end user scans the QR code they will be directed to a unique web page, associated with their specific product. Along with the clothing, the user owns this mobile friendly webpage and can customize it with links, text, payment gateways and more.   Their webpage is an anonymous home that can only be viewed from physical interaction with the person and their clothing.  Critically, the customer buys a digital identity along with their clothing; the associated web page is simply a gateway to interact with this identity.
     
