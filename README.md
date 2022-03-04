@@ -4,15 +4,15 @@ We offer a service to turn your apparel into digital assets. We do this by imbui
 
 # Features
  - Identity as a service for apparel
-  - We generate bulk QR codes for clothing that link to unique web pages
+   - We generate bulk QR codes for clothing that link to unique web pages
  - Customizable web pages for customers that is embedded in their clothing
-  - The QR code directs to a unique web page
-  - The key to customize the webpage is inside the apparel
+   - The QR code directs to a unique web page
+   - The key to customize the webpage is inside the apparel
  - The web page is a gateway for
-  - Links to social media: access to all your social media in one place
-  - Payments: Currently supports the feeless cryptocurrency IOTA
-  - A free Non Fungible Token (NFT) that represents their identity
-  - Social network: These identities can be connected through the web interface
+   - Links to social media: access to all your social media in one place
+   - Payments: Currently supports the feeless cryptocurrency IOTA
+   - A free Non Fungible Token (NFT) that represents their identity
+   - Social network: These identities can be connected through the web interface
  - The identity NFT can act as:
   - Proof of receipt: the authenticity of the product can be easily verified by using  a distributed ledger
   - Membership to club: instead of plastic cards your shirt can be a form of identification
