@@ -1,0 +1,5 @@
+cred.json
+.access.json
+.mongo*
+*~
+__pycache__

@@ -1,0 +1,24 @@
+{% extends "edit_account/content.html" %}
+{% block title %}Links{% endblock %}
+{% block object %}Link{% endblock %}
+{% block create_text %}Add Link{% endblock %}
+{% block endpoint %}add_link{% endblock %}
+{% block data %}{{content}}{% endblock %}
+{% block extra_columns %}<th>Action</th>{% endblock %}
+{% block table %}
+{% for link in links %}
+<tr>
+  <td>{{link.title}}</td>
+  <td>{{link.link}}</td>
+  <td>{{link.action}}</td>
+  <td><a class="is-danger" href="/{{key}}/admin/del?q={{link._id}}&type=link"><class="button"><i class="fas fa-times"></i></a></td>
+</tr>
+{% endfor %}
+{% endblock %}
+{% block notify %}
+{% if deleted == "link" %}
+<div class="notification is-success">
+  Deleted link!
+</div>
+{% endif %}
+{% endblock %}

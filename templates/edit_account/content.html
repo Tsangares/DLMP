@@ -1,0 +1,29 @@
+<div class="card block">
+  <header class="card-header">
+    <p class="card-header-title">{% block title %}{% endblock %}</p>
+  </header>
+  <div class="card-content">
+    <div class="content">
+      {% block notify %}{% endblock %}
+      <table>
+	<thead>
+	  <tr>
+	    <th>Title</th>
+	    <th>{% block object %}{% endblock %}</th>
+	    {% block extra_columns %}{% endblock %}
+	    <th>Delete</th>
+	  </tr>
+	</thead>
+	<tbody>
+	  {% block table %}{% endblock %}
+	</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="field">
+
+  </div>	  
+  <footer class="card-footer">
+    <button type='submit' class="card-footer-item button is-primary is-light" name='{% block endpoint %}{% endblock %}' value="submit"><i class="fas fa-plus-circle"></i>&nbsp;{% block create_text %}{% endblock %}</button>
+  </footer>	  
+</div>

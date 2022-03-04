@@ -1,0 +1,43 @@
+<footer class="block">
+  {% if failed %}
+  <div class="notification">You do not have permission to customize this page. You must logout first!</div>
+  {% endif %}
+  <div class="columns is-centered">
+    {% if not logged_in or (logged_in and key == current_user.key) %}
+    <a class="column is-narrow" href="/{{key}}/admin">
+      <button class="button">
+	<i class="fas fa-cog"></i>&nbsp;Customize
+      </button>
+    </a>
+    {% endif %}
+    {% if logged_in and key == user.key and not minted %}
+    <a class="column is-narrow" href="/{{key}}/mint">
+      <button class="button">
+	<span class="material-icons">flare</span>
+	&nbsp;
+	Mint Badge
+      </button>
+    </a>
+    {% endif %}
+    {% if logged_in and user.key != current_user.key %}
+    <a class="column is-narrow" href="/{{current_user.key}}">
+      <button class="button">
+	<span class="material-icons">home</span>&nbsp;Home
+      </button>
+    </a>
+    <a class="column is-narrow" href="/{{key}}/connect">
+      <button class="button">
+	<i class="fas fa-plug"></i>&nbsp;Connect
+      </button>
+    </a>
+    {% endif %}
+    {% if logged_in %}
+    <a class="column is-narrow" href="/{{key}}/logout">
+      <button class="button">
+	Logout
+      </button>
+    </a>
+    {% endif %}
+  </div>
+</footer>
+<div class="block" />

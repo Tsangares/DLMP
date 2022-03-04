@@ -1,0 +1,51 @@
+#example-image{
+    max-width: 75vmin;
+    max-height: 75vmin;
+}
+.center{
+    text-align:center;
+    justify-content:center;
+    align-items:center;
+}
+.icn{
+    padding: 10px;
+    height: 34px;
+    width: auto;
+}
+
+#qr-image{
+    height: 25vh;
+    width: auto;
+}
+.left{
+    justify-content: left;
+}
+
+.bold{
+    font-weight: bold;
+}
+.firefly{
+    letter-spacing: -1px
+}
+#firefly-icn{
+    height: 20px;
+    width: auto;
+}
+#firefly-btn{
+    height: 20px;
+    width: auto;
+}
+.clip{
+    overflow-x: clip;
+}
+.word-wrap{
+    height: 100%;
+    white-space: inherit;
+    word-wrap: normal;
+}
+.badge{
+    -webkit-filter: drop-shadow(5px 5px 1px rgba(0,0,0,.2));
+    filter:         drop-shadow(5px 5px 1px rgba(0,0,0,.2)); 
+    max-width: 200px;
+    max-height: 200px;
+}

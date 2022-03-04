@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {% include 'header.html' %}    
+    <title>Customize</title>
+  </head>
+  <body>
+    <form action='/{{key}}/admin' method="POST">
+      <div class="container">
+	
+	<div class="box">
+	  <div class="title">
+	    <span>Edit Account</span>
+	    <div class="block" style="float: right">
+	      <button class="button is-success" href="/{{key}}">Home</button>	      
+	    </div>
+	  </div>
+	  <div class="sub-title">Customize the landing page for users.</div>
+	</div>
+	<div class="block">
+	  {% if error %}
+	  <div class="notification is-danger">{{error}}</div>
+	  {%endif%}
+	  {% if notify %}
+	  <div class="notification is-info">{{notify}}</div>
+	  {%endif%}
+	</div>
+	
+	<div class="card block">
+	  <div class="card-content">
+	    {{ form.csrf_token }}
+	    <div class="field">
+	      {{ form.name.label(class_="label")}} {{form.name(size=20,class_="input")}}
+	    </div>
+	    <div class="field">
+	      {{ form.blurb.label(class_="label")}} {{form.blurb(size=20,class_="input")}}
+	    </div>
+	  </div>
+	  <footer class="card-footer">
+	    <button type='submit' class="card-footer-item button is-success" name='login' value="subtmit">Save</button>
+	    <button type='submit' class="card-footer-item button is-success is-light" name='edit' value="submit">Save & Edit</button>
+	  </footer>
+	</div>
+
+	{% include 'edit_account/content_links.html' %}
+	{% include 'edit_account/content_text.html' %}
+	
+	{% include 'edit_account/edit_account_iota.html' %}
+	
+
+    </form>
+    <div class="block">
+      <button class="button is-success" href="/{{key}}">Home</button>
+    </div>
+    <div class="block" />    
+  </body>
+</html>

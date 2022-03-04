@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">        
+    <link rel="stylesheet" href="/static/css/bulma.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script src="/static/js/bulma-toast.js"></script>            
+    <script src="/static/js/jquery.js"></script>        
+    <script src="/static/js/copy.js"></script>
+    <title>Create Account</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="box">
+	<div class="title">Account Generator</div>
+	<div class="sub-title">Tool to create new accounts.</div>
+      </div>
+      {% if error %}
+      <div class="notification is-danger">{{error}}</div>
+      {% endif %}
+      {% if hashed %}
+      <article class="message">
+	<div class="message-header">
+	  <p>New Account</p>
+	</div>
+	<div class="message-body">
+	  <div class="field">	  
+	    <label class="label">Passkey</label>
+	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="{{key}}">
+	      <i class="far fa-copy"></i>&nbsp;{{key}}
+	    </button>
+	  </div>
+	  <div class="field">
+	    <label class="label">Website Endpoint</label>
+	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="yque.net/{{hashed}}">
+	      <i class="far fa-copy"></i>&nbsp;yque.net/{{hashed}}
+	    </button>
+	  </div>
+	  <div class="field">
+	    <label class="label">Short Endpoint</label>
+	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="tngl.at/{{hashed}}">
+	      <i class="far fa-copy"></i>&nbsp;tngl.at/{{hashed}}
+	    </button>
+	  </div>
+	</div>
+	<div class="columns is-centered">
+	  <div class="column is-narrow has-text-centered">
+	    <img src="/qr?q=yque.net/{{hashed}}" width="100px" height="100px" />
+	  </div>
+	  <div class="column is-narrow has-text-centered">
+	    <label class="label">This is a qr code of the long url</label>
+	    <a target="_blank" href="https://yque.net/{{hashed}}"><button class="button is-link is-light">yque.net/{{hashed}}</button></a>
+	    <a target="_blank" href="/qr?q=yque.net/{{hashed}}"><button class="button is-link is-light">Link to qr code</button></a>
+	    <p>Use this link to redirect traffic to your services</p>
+	  </div>
+	</div>	
+	<div class="columns is-centered">
+	  <div class="column is-narrow has-text-centered">
+	    <img src="/qr?q=tngl.at/{{hashed}}" width="100px" height="100px" />
+	  </div>
+	  <div class="column is-narrow has-text-centered">
+	    <label class="label">This is a qr code of the short url</label>
+	    <a target="_blank" href="https://tngl.at/{{hashed}}"><button class="button is-link is-light">tngl.at/{{hashed}}</button></a>
+	    <a target="_blank" href="/qr?q=tngl.at/{{hashed}}"><button class="button is-link is-light">Link to qr code</button></a>
+	    <p>Use this link to redirect traffic to your services</p>
+	  </div>
+	</div>
+
+
+      </article>
+      {% endif %}
+      {% if custom %}
+      <div class="block">
+	<a href="">
+	  <button class="button is-link">Generate New</button>
+	</a>
+      </div>      
+      <form action="" method="POST" class="box">
+	{{ form.csrf_token }}	
+	<div class="field">
+	  {{ form.passkey.label(class_="label")}} {{form.passkey(size=20,class_="input")}}
+	</div>
+	<div class="field is-grouped">
+	  <div class="control">
+	    <input type='submit' class="button is-link is-light" name='submit' value="Generate" />
+	  </div>
+	</div>
+      </form>
+      {% endif %}
+    </div>
+  </body>
+</html>
+

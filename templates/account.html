@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {% include 'header.html' %}    
+    <link rel="stylesheet" href="/static/css/account.css">
+    <script src="/static/js/bulma-toast.js"></script>        
+    <script src="/static/js/jquery.js"></script>    
+    <script src="/static/js/copy.js"></script>
+    <script src="/static/js/account.js"></script>
+    <title>{{name}}</title>
+  </head>
+  <body>
+    <div class="container">
+      {% if name != '' or blurb != '' %}
+      <div class="block box">
+	{% if name != '' %}
+	<div class="title">Account of {{name}}</div>
+	{% endif %}
+	{% if blurb != '' %}
+	<div class="subtitle">{{blurb}}</div>
+	{% endif %}
+      </div>
+      {% endif %}
+      
+      {% include 'account/account_texts.html' %}
+      {% include 'account/account_links.html' %}
+
+      {% include 'account/account_badges.html' %}
+      
+      {% if address != '' %}
+      {% include 'account/iota_address_block.html' %}
+      {% endif %}
+      {% include 'account/footer.html' %}
+    </div>
+  </body>
+</html>

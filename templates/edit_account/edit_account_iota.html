@@ -1,0 +1,15 @@
+<div class="card block">
+  <header class="card-header">
+    <p class="card-header-title">Deposit Address</p>
+  </header>
+  <div class="card-content">
+    <div class="field">
+      {{ form.address.label(class_="label")}} {{form.address(size=20,class_="input")}}
+    </div>
+    {# include 'iota/iota_faq.html' #}
+    {# include 'iota/iota_links.html' #}
+  </div>
+  <footer class="card-footer">
+    <button type='submit' class="card-footer-item button is-success is-light" name='edit' value="Save Address">Save Address</button>
+  </footer>
+</div>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {% include 'header.html' %}
+    <script src="/static/js/jquery.js"></script>    
+    <script src="/static/js/copy.js"></script>
+    <title>Yque</title>    
+  </head>
+  <body>
+    <div class="container">
+      <div class="box">
+	<div class="title">Deep Links Meta Pages by YQue.net</div>
+	<div class="subtitle">Please enter an web account key to proceed to a product page or see the example.</div>
+      </div>
+      <div class="content">
+	{% if error %}
+	<div class="notification is-danger">{{error}}</div>
+	{% endif %}
+	<div class="columns">
+	  <div class="column">
+	    <div class="box">
+	      <form action='/' method="GET" class="form">
+		<div class="field">
+		  <label class="label">Web Account Key</label>
+		  <p>Enter the web account key to view a specific account.</p>
+		  <input class="input" type="text" name="key" placeholder="Web Account key">
+		</div>
+		<div class="control">
+		  <button class="button is-success">View</button>
+		</div>
+	      </form>
+	    </div>
+	  </div>
+	  <div class="column">
+	    <div class="box">
+	      <form action='/58c56465b91' method="GET" class="form">
+		<div class="field">
+		  <label class="label">Click here for more information</label>
+		  <p>The following page provides more infomration about DLMP</p>
+		</div>
+		<div class="control">
+		  <button class="button is-link is-light">Example Page</button>
+		</div>
+	      </form>
+	    </div>
+	  </div>
+	</div>
+	<section class="section is-medium">
+	  <h1 class="title">About Us</h1>
+	  <p class="subtitle">Frequency asked questions about Deep Link Meta Pages.</p>
+	</section>
+	{% include 'about_content.html' %}
+      </div>
+    </div>
+  </body>
+</html>
+
+

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {% include 'header.html' %}    
+    <title>Login</title>    
+  </head>
+  <body>
+    <div class="container">
+      <div class="box">
+	<div class="title">Login</div>
+	<div class="sub-title">Enter your passkey to verify you are the owner of this account.</div>
+      </div> 
+      {% if failed %}
+      <div class="notification is-warning">Error: That key was incorrect.</div>
+      {% endif %}
+      <form action="/{{key}}" method="POST" class="box">
+	{{ form.csrf_token }}
+	<div class="field">
+	  {{ form.passkey.label(class_="label")}} {{form.passkey(size=20,class_="input")}}
+	</div>
+	<div class="control">
+	  <input type='submit' class="button is-link" name='login' value="Verify Ownership" />
+	</div> 
+      </form>
+      <div class="box">
+	<div class="block">	
+	  <p>By purchasing a product with this QR code, you own this webpage.</p>
+	  <p>To learn more please see our about page.</p>
+	</div> 
+	<div class="block">
+	  <a href="/about">
+	    <button class="button is-link">
+	      About
+	    </button>
+	  </a>
+	  <a href="/{{key}}">
+	    <button class="button">
+	      Go Back
+	    </button>
+	  </a>
+	</div>
+      </div>
+    </div>
+  </body>
+</html>
