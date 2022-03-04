@@ -14,9 +14,9 @@ We offer a service to turn your apparel into digital assets. We do this by imbui
    - A free Non Fungible Token (NFT) that represents their identity
    - Social network: These identities can be connected through the web interface
  - The identity NFT can act as:
-  - Proof of receipt: the authenticity of the product can be easily verified by using  a distributed ledger
-  - Membership to club: instead of plastic cards your shirt can be a form of identification
-  - Hyper-personalized apparel for concerts: specific NFTs can be gifted when purchasing clothing at concerts
+   - Proof of receipt: the authenticity of the product can be easily verified by using  a distributed ledger
+   - Membership to club: instead of plastic cards your shirt can be a form of identification
+   - Hyper-personalized apparel for concerts: specific NFTs can be gifted when purchasing clothing at concerts
  - Enables companies to continue to engage with their customer after the point of sale
  - The distributed ledger we use does not use proof of stake and is feeless to use
  - By extending the utility of clothing we also extend its life
@@ -29,15 +29,15 @@ What we sell to apparel companies is identity as a service. A streamlined proces
 
 There are three ingredients to make a Deep Link Meta Page:
  - Pick a physical object to imbue:
-  - T-shirt
-  - Trucker hat
-  - Sweater
+   - T-shirt
+   - Trucker hat
+   - Sweater
  - Generate a self-sovereign identity that is readable by phones:
-  - QR code
-  - RFID tag
+   - QR code
+   - RFID tag
  - Embed the identity into the apparel
-  - Heat-transfer
-  - Direct To Garment (DTG) printing
+   - Heat-transfer
+   - Direct To Garment (DTG) printing
 
 We currently offer services for generating bulk self-sovereign identities and printing their respective QR-codes onto heat transfer for easy application to common clothing. We partnered with a clothing boutique at Y-Que trading post in Los Feliz, to prototype and distribute our first implementation.
 
