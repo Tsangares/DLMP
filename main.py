@@ -66,7 +66,7 @@ csrf = CSRFProtect(app)
 
 #User Accounts
 def get_ip():
-    return request.environ.get('HTTP_X_REAL_IP', None)
+    return request.environ.get('HTTP_X_REAL_IP', request.environ.get('REMOTE_ADDR',None))
 
 #Forms
 class LoginForm(FlaskForm):
@@ -369,6 +369,43 @@ def get_qr_image(string):
     return send_img(string)
 
 
+@app.after_request
+def after_request_callback(response):
+    try:
+        track_visit()
+    except NameError:
+        pass
+    return response
+def track_visit():
+    ip = get_ip()
+    timestamp = datetime.datetime.now()
+    endpoint = request.path
+    if 'badge' in endpoint or 'qr' in endpoint: return
+    domain = request.host
+    user_agent = request.user_agent.string    
+    crumb = mongo.db.visits.find_one({'ip': ip,'endpoint': endpoint,'domain': domain})
+    if crumb is None:
+        keys = [user.key] if current_user.is_authenticated else []
+        mongo.db.visits.insert_one({
+            'ip': ip,
+            'created': timestamp,
+            'modified': timestamp,
+            'visits': 1,
+            'endpoint': endpoint,
+            'domain': domain,
+            'keys': keys,
+            'user_agents': [user_agent]
+        })
+    else:
+        key = user.key if current_user.is_authenticated else None
+        mongo.db.visits.update_one({'_id': crumb['_id']},{
+            '$inc': {'visits': 1},
+            '$set': {'modified': timestamp},
+            '$addToSet': {'keys': key},
+            '$addToSet': {'user_agents': user_agent}
+        })
+
+
 @app.route('/<key>',methods=['GET'])
 def get_iota_view(key):
     if len(key) not in VALID_HASH_LEN:
@@ -541,6 +578,7 @@ def del_content(key):
         return redirect(f'/{key}')
     _id = request.args.get('q',None)
     _type = request.args.get('type',None)
+    current_user.del_content(_id)
     return redirect(f'/{key}/admin?deleted={_type}')
 
 @app.route('/<key>/mint',methods=['GET'])
@@ -589,29 +627,35 @@ def send_pdf(img):
 
 def send_png(img):
     img_io = io.BytesIO()
-    img.save(img_io,'png')
+    img.save(img_io,'png',dpi=(int(300),int(300)))
     img_io.seek(0)    
     return send_file(img_io,mimetype='image/png')
 
 font = ImageFont.truetype("static/ubuntu.ttf",66)
 smallfont = ImageFont.truetype("static/ubuntu.ttf",49)
-def mk_account():
+def mk_account(rows=4,columns=3,page_width=7,page_height=10):
     key = get_rand_key()
+    w,h=font.getsize(key)
+    h_offset = 10
     hashed = unique_hash(key)
     url = f"YQue.net/{hashed}"    
-    width = int(8.5*300/4)
-    img = Image.new(mode="RGB",size=(width,width+175),color="white")
+    width = int(page_width*300/columns)
+    height = int(page_height*300/rows)
+
+    img = Image.new(mode="RGB",size=(width,height),color="white")
     qr = segno.make_qr(url.lower())
     qr = qr.to_pil(dark="black",light="white",scale=20,border=0)
-    offset=int((width-qr.width)/2)
-    img.paste(qr,(offset,offset))
+    offset_X=int((width-qr.width)/2)
+    offset_Y=int((height-qr.height-2*h-h_offset)/2)
+    img.paste(qr,(offset_X,offset_Y))
+
     
     #Text
-    w,h=font.getsize(key)
     offset = int((width-w)/2)
     draw = ImageDraw.Draw(img)
-    draw.text((offset,width),key,(0,0,0),font=font)
-    draw.text((offset,width+2*h),url,(0,0,0),font=smallfont)
+    draw.text((offset,height-h-h_offset),key,(0,0,0),font=font)
+    draw.text((offset,height-2*h-h_offset),url,(0,0,0),font=smallfont)
+    
     return img
 
 @app.route('/badge',methods=['GET'])
@@ -629,17 +673,26 @@ def get_badge(key):
     badge,stats = make_badge(int(key,16))
     return send_png(badge)
 
+
+@app.route('/create/page/<int:rows>/<int:cols>',methods=['GET'])
+def make_custom_page(rows,cols):
+    page_width=8.5
+    page_height=10
+    page = Image.new(mode="RGB",size=(int(page_width*300),int(page_height*300)),color="white")
+    get_pane = lambda: mk_account(rows,cols,page_width,page_height)
+    pane = get_pane()
+    verticles = int(page.width/pane.width)
+    horizontals = int(page.height/pane.height)
+
+    
+    for c in range(verticles):
+        for r in range(horizontals):
+            page.paste(get_pane(),(c*pane.width,r*pane.height))
+    return send_png(page)
+    
 @app.route('/create/page',methods=['GET'])
 def mk_page():
-    page = Image.new(mode="RGB",size=(int(8.5*300),int(11*300)),color="white")
-    pane = mk_account()
-    cols = int(page.width/pane.width)
-    rows = int(page.height/pane.height)
-    for c in range(cols):
-        for r in range(rows):
-            page.paste(mk_account(),(c*pane.width,r*pane.height))
-    return send_pdf(page)
-
+    return make_custom_page(3,4)
 @app.route('/about',methods=['GET'])
 def get_about_us():
     return render_template('about.html')
