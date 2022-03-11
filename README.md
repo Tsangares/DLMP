@@ -1,5 +1,5 @@
 
-# Deep Link Meta Pages
+# Deep Link Micro Pages
 We offer a service to turn your apparel into digital assets. We do this by imbuing them with non-fungible tokens (NFTs) and providing a web-interface to let end-users interact with the digital clone that comes with the clothes that they purchase. View our demo at YQue.net
 
 # Features
@@ -27,7 +27,7 @@ My father owns a small business in Los Feliz selling screen printed t-shirts. We
 # How DLMP Works
 What we sell to apparel companies is identity as a service. A streamlined process to generate unique identities on their clothing, and a web application that allows end users to own the digital clone associated with the clothing they buy. 
 
-There are three ingredients to make a Deep Link Meta Page:
+There are three ingredients to make a Deep Link Micro Page:
  - Pick a physical object to imbue:
    - T-shirt
    - Trucker hat
@@ -45,7 +45,7 @@ We currently offer services for generating bulk self-sovereign identities and pr
 </p>
 
 # Value
-Deep Link Meta Pages (DLMP) expands the experience and utility associated with clothing by adding a separate dimension of interaction. When an end user scans the QR code they will be directed to a unique web page, associated with their specific product. Along with the clothing, the user owns this mobile friendly webpage and can customize it with links, text, payment gateways and more.   Their webpage is an anonymous home that can only be viewed from physical interaction with the person and their clothing.  Critically, the customer buys a digital identity along with their clothing; the associated web page is simply a gateway to interact with this identity.
+Deep Link Micro Pages (DLMP) expands the experience and utility associated with clothing by adding a separate dimension of interaction. When an end user scans the QR code they will be directed to a unique web page, associated with their specific product. Along with the clothing, the user owns this mobile friendly webpage and can customize it with links, text, payment gateways and more.   Their webpage is an anonymous home that can only be viewed from physical interaction with the person and their clothing.  Critically, the customer buys a digital identity along with their clothing; the associated web page is simply a gateway to interact with this identity.
     
 To showcase the identity associated with the product, when you first login to the webpage you are able to mint a badge. Each self-sovereign identity is used as the seed to deterministically create the metadata and graphic for the badge.
 
@@ -65,6 +65,6 @@ Another part of the business would be printing and shipping heat-transfer ready 
 
 # Monetization
 We have several pathways to monetize in this business. The first is from selling identities in the form of webpages. We can sell them to apparel companies on a per identity basis and offer a service level agreement for 10 years. A server that can support at least 5,000 identities costs $180 a year or $2,300 for 10 years. This translates to a cost of $0.36 per identity for 10 years of support. Selling each identity for $1 would leave us with $0.64 profit per identity. If we sold the QR code too our net revenue would be $2, our costs would be $0.82 leaving us with $1.18 profit per QR code identity.
-Additionally we can offer unique services to the apparel companies. For things like concerts we can offer unique NFT drops to give a personalized clothing experience for the fans of their favorite artists. When you buy clothing from a game company the Deep Links Meta Page can offer unique in-game items like skins. For a premium service we could allow vendors to attach the logistical history of the product to the webpage, proving that the clothing was ethically sourced, its environmental impact or proof that the company is making ethical donations. These identities could be used as membership authorizations or two factor authentication with companies or games. For example, your starbucks mug could represent your starbucks membership and could be used to transact your payments with your account. School clothing could use these webpages to mediate fun educational games that act as an inter-social game. 
+Additionally we can offer unique services to the apparel companies. For things like concerts we can offer unique NFT drops to give a personalized clothing experience for the fans of their favorite artists. When you buy clothing from a game company the Deep Links Micro Page can offer unique in-game items like skins. For a premium service we could allow vendors to attach the logistical history of the product to the webpage, proving that the clothing was ethically sourced, its environmental impact or proof that the company is making ethical donations. These identities could be used as membership authorizations or two factor authentication with companies or games. For example, your starbucks mug could represent your starbucks membership and could be used to transact your payments with your account. School clothing could use these webpages to mediate fun educational games that act as an inter-social game. 
 Lastly, we can monetize the consumers themselves. We could offer a premium monthly service giving them access to additional features. These features could include image support allowing them to essentially make a custom webpage for their internet presence. We could also support credit card payment through the payment gateway. Any type of integration with spotify, shopify, etsy or youtube could have a premium interaction to allow for personalized mobile friendly websites. 
 
