@@ -15,11 +15,11 @@
     {% for badge in badges %}
     <div class="card">
       <div class="card-header center">
-	<img class="badge" alt="Badge of {{badge.name}}" title="Badge of {{badge.name}}" src="/badge/{{badge.key}}" />
+	<img class="badge" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}" src="/badge/{{badge.key}}" />
       </div>
       <div class="card-content">
 	<div class="columns is-multiline">
-	  <label class="column is-full" title="Badge creat or.">Name: {{badge.name}}</label>
+	  <label class="column is-full" title="Badge creat or.">Id: {{badge.key}}</label>
 	  <label class="column is-full" title="Increments every 10 seconds.">Influence: {{badge.influence}}</label>
 	  <label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun: {{badge.renoun}}</label>	  
 	</div>
@@ -41,7 +41,7 @@
 	</div>
 	<div class="card-content">
 	  <div class="columns is-multiline">
-	    <label class="column is-narrow" title="Badge creator.">ID: {{badge.key}}</label>
+	    <label class="column is-narrow" title="Badge creator.">Id: {{badge.key}}</label>
 	    <label class="column is-full" title="Increments every 10 seconds.">Influence: {{badge.influence}}</label>
 	    <label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun: {{badge.renoun}}</label>
 	  </div>
@@ -64,10 +64,10 @@
     {% for badge in friend_requests %}
     <div class="card">
       <div class="card-header">
-	<img class="badge" alt="Badge of {{badge.name}}" title="Badge of {{badge.name}}" src="/badge/{{badge.key}}" />
+	<img class="badge" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}" src="/badge/{{badge.key}}" />
 	<div class="card-content">
 	  <div class="columns is-multiline">
-	    <label class="column is-full" title="Badge creator.">Name: {{badge.name}}</label>
+	    <label class="column is-full" title="Badge creator.">Id: {{badge.key}}</label>
 	    <label class="column is-full" title="Increments every 10 seconds.">Influence: <span class="influence">{{badge.time_created}}</span></label>
 	    <label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun: {{badge.renoun}}</label>	    
 	  </div>
