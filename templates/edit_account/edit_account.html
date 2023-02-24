@@ -3,9 +3,10 @@
   <head>
     {% include 'header.html' %}    
     <title>Customize</title>
+	<link rel="stylesheet" href="/static/css/edit_account.css">
   </head>
   <body>
-    <form action='/{{key}}/admin' method="POST">
+    <form action='/{{key}}/admin' method="POST" enctype=multipart/form-data>
       <div class="container">
 	
 	<div class="box">
@@ -41,17 +42,21 @@
 	    <button type='submit' class="card-footer-item button is-success is-light" name='edit' value="submit">Save & Edit</button>
 	  </footer>
 	</div>
-
+	{% include 'edit_account/add_image.html' %}
 	{% include 'edit_account/content_links.html' %}
 	{% include 'edit_account/content_text.html' %}
 	
 	{% include 'edit_account/edit_account_iota.html' %}
-	
+	{% include 'edit_account/add_redirect.html' %}
 
     </form>
     <div class="block">
       <button class="button is-success" href="/{{key}}">Home</button>
+      <a href="/{{key}}/admin/badge"><span class="button is-link">{% if account.badge_enabled %}Disable Badges{% else %}Enable Badges{% endif %}</span></a>
     </div>
     <div class="block" />    
   </body>
+  <footer>
+    <script src="/static/js/account_edit.js"></script>
+  </footer>
 </html>

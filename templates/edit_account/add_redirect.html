@@ -1,0 +1,15 @@
+<div class="card block">
+    <header class="card-header">
+        <p class="card-header-title">Perminant Redirect</p>
+    </header>
+    <div class="card-content">
+        <div class="field">
+            {{ form.redirect.label(class_="label")}} {{form.redirect(size=20,class_="input")}}
+        </div>
+    </div>
+    <footer class="card-footer">
+        <button type='submit' class="card-footer-item button is-success is-light" name='set_redirect'
+            value="Confirm Redirect">Set Redirect</button><button type='submit' class="card-footer-item button" name='del_redirect'
+            value="Confirm Redirect">Clear Redirect</button>
+    </footer>
+</div>

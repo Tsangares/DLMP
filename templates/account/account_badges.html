@@ -1,3 +1,4 @@
+{% if user.account.badge_enabled %}
 {% if badges | length > 0 or ( logged_in and key == user.key and not minted )%}
 <div class="block">
   <h4 class="title">Badges</h4>  
@@ -28,6 +29,7 @@
     {% endfor %}
   </div>
 </div>
+{% endif %}
 {% endif %}
 {% if friends | length > 0 %}
 <div class="block">

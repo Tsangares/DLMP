@@ -8,23 +8,27 @@ from PIL import Image,ImageFont,ImageDraw
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 import json,os,hashlib,datetime,time,logging,dateutil
-import flask,requests,pymongo
+import flask,requests,pymongo,base64
 from flask import Blueprint,Flask,request,redirect,render_template,session,flash,abort,make_response,send_file
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager,login_required,login_user,UserMixin,current_user,logout_user
 from flask_wtf import FlaskForm
-from wtforms import StringField,PasswordField,SubmitField,RadioField,SelectMultipleField,widgets,HiddenField
+from wtforms import StringField,PasswordField,SubmitField,RadioField,SelectMultipleField,widgets,HiddenField,FileField
 from wtforms.validators import DataRequired
 from wtforms import validators
 from bson.objectid import ObjectId
 from urllib.parse import urlparse, urljoin
 from flaskext.markdown import Markdown
 from flask.sessions import SecureCookieSessionInterface
-print(hashlib.algorithms_available)
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from PIL import Image
+from io import BytesIO
+import numpy as np
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 #Flask 
 app = Flask(__name__)
@@ -75,15 +79,24 @@ class LoginForm(FlaskForm):
 class HashForm(FlaskForm):
     passkey = StringField('Passkey',validators=[DataRequired()])
     
-class EditForm(FlaskForm):
-    name = StringField('Name or Title (Required)',validators=[DataRequired()])
-    blurb = StringField('Subtitle')
-    address = StringField('IOTA Address (for donations)')
     
 class ContentForm(FlaskForm):    
     title = StringField('Title',validators=[DataRequired()])
     key = HiddenField()
 
+class ImageForm(FlaskForm):
+    title = StringField('Title',validators=[DataRequired()])
+    image = FileField('Image File', [validators.regexp(r'^[^/\\]\.jpg$')])
+    def validate_image(form, field):
+        if field.data:
+            field.data = re.sub(r'[^a-z0-9_.-]', '_', field.data)
+    
+class EditForm(FlaskForm):
+    name = StringField('Name or Title (Required)',validators=[DataRequired()])
+    blurb = StringField('Subtitle')
+    address = StringField('IOTA Address (for donations)')
+    redirect = StringField('Permenant Rediret for your DLMP (One Time Use)')
+    
 link_actions = [
     ('open', "Open the link"),
     ('copy', "Copy the text"),
@@ -94,6 +107,10 @@ class LinkForm(ContentForm):
     
 class TextForm(ContentForm):
     text = StringField('Subtext',validators=[DataRequired()])
+
+class RedirectForm(ContentForm):
+    link = StringField('redirect')
+
 
 class Badge:
     def __init__(self,badge):
@@ -286,6 +303,83 @@ class User(UserMixin):
             })
         login_user(User(key=key))
         return redirect(f'/{key}/admin')
+    
+    
+    def upload_image(self,image):
+        app.logger.info("HERE")
+        filename = image.filename
+        
+        filetype = filename.split('.')[-1].lower()
+        if filetype=='jpg': filetype='jpeg'
+        def process_image(image):
+            img = Image.open(image.stream)
+            width,height = img.size
+            #crop
+            length = min([width,height])
+            app.logger.info(length)
+            center = np.array((width/2,height/2))
+            left,upper = (center-length/2).tolist()
+            right,lower = (left+length,upper+length)
+            img = img.crop((left,upper,right,lower))
+            if max(img.size)>1_000:
+                img = img.resize((1_000,1_000))
+            buffer = BytesIO()
+            img.save(buffer, format=filetype)
+            return base64.b64encode(buffer.getvalue())
+        
+        image_encoded = process_image(image)
+        mongo.db.images.insert_one({
+            'key': self._id,
+            'time_created': datetime.datetime.now(),
+            'time_modified': datetime.datetime.now(),
+            'data': image_encoded,
+            'filetype': filetype,
+            'ip_created': get_ip(),
+            'agent': request.user_agent.string
+        })
+    def get_images(self):
+        images =  [c for c in mongo.db.images.find({'key': self._id})]
+        return images
+    def get_image(self):
+        images = self.get_images()
+        if len(images)==0:
+            return None
+        else:
+            img = images[-1]
+            img['data'] = img['data'].decode('utf-8')
+            return img
+       
+    def toggle_badge(self):
+        self.refresh()
+        if 'badge_enabled' in self.account and self.account['badge_enabled']:
+            mongo.db.users.update_one({'key': self.key},{'$set': {
+                'badge_enabled': False
+            }})
+            self.account['badge_enabled'] = False
+        else:
+            mongo.db.users.update_one({'key': self.key},{'$set': {
+                'badge_enabled': True
+            }},upsert=True)
+            self.account['badge_enabled'] = True
+        return self.account['badge_enabled']
+    
+    def set_redirect(self):
+        self.refresh()
+        delete = request.form.get('del_redirect',None)
+        link = request.form.get('redirect',None)
+        if delete is not None and 'redirect' in self.account:
+            #Delete
+            mongo.db.users.update_one({'key': self.key},{'$set': {
+                'redirect': False
+            }})
+            self.account['redirect'] = link
+        elif link is not None:
+            mongo.db.users.update_one({'key': self.key},{'$set': {
+                'redirect': link
+            }},upsert=True)
+            self.account['redirect'] = link
+            
+        
 
 #@app.route('/refresh_links/',methods=['GET'])
 def refresh_links():
@@ -421,6 +515,7 @@ def get_iota_view(key):
     blurb = account.get('blurb',None)
     failed = request.args.get('failed',False)
     user = User(key=key)
+    image = user.get_image()
     logged_in = current_user.is_authenticated
     if logged_in and key==current_user.key:
         friends = current_user.friends_badges
@@ -446,6 +541,7 @@ def get_iota_view(key):
         logged_in=logged_in,
         links=links,
         texts=texts,
+        image=image,
         minted=minted,
         badges=badges,
         friends=friends,
@@ -463,16 +559,20 @@ def iota_key_admin(key):
         return render_template('login.html',key=key,form=form,failed=False)
     elif current_user.key == key:
         edit_account_form = EditForm(data=current_user.account)
+        image_form = ImageForm()
+        image = current_user.get_image()
         links = current_user.get_links()
         texts = current_user.get_texts()
         return render_template(
             'edit_account/edit_account.html',
             key=key,
             form=edit_account_form,
+            image_form=image_form,
             account=current_user.account,
             deleted=request.args.get('deleted',None),
             links=links,
-            texts=texts
+            texts=texts,
+            image=image
         )
     else:
         #Possibly add a logout here!
@@ -485,6 +585,14 @@ def iota_key_admin_edit(key):
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
     elif current_user.key == key:
+        new_image = request.files['image']
+        if new_image.filename == "": new_image=None
+        if new_image is not None:
+            current_user.upload_image(new_image)
+        if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
+            current_user.set_redirect()
+        image = current_user.get_image()
+        image_form = ImageForm()
         links = current_user.get_links()
         texts = current_user.get_texts()
         name = request.form.get('name','').strip()
@@ -492,37 +600,47 @@ def iota_key_admin_edit(key):
         blurb = request.form.get('blurb','').strip()
         edit_account_form = EditForm()
         if address != '' and not client.is_address_valid(address):
+            #ERROR PATH
             error_message = "The address given is not a valid IOTA address!"
             return render_template(
                 'edit_account/edit_account.html',
                 key=key,
                 form=edit_account_form,
+                image_form=image_form,
                 account=current_user.account,
                 error=error_message,
                 links=links,
                 texts=texts,
+                image=image,
                 deleted=request.args.get('deleted',None),
             )
         else:
+            #SUCCESS PATH
             mongo.db.users.update_one({'key': key},{'$set': {
                 'address': address,
                 'name': name,
                 'blurb': blurb
             }})
-            if request.form.get('edit',False):
+            #Return to edit page if they uploaded and image of edit is false
+            #If edit is  True then the person is still editing their page.
+            if request.form.get('edit',False) or new_image is not None:
                 return render_template(
                     'edit_account/edit_account.html',
                     key=key,
                     form=edit_account_form,
+                    image_form=image_form,
                     account=current_user.account,
                     notify="Saved!",
                     links=links,
                     texts=texts,
+                    image=image,
                     deleted=request.args.get('deleted',None),
                 )
             elif request.form.get('add_link',False):
+                #Return to page because they added a link
                 return redirect(f'/{key}/admin/add/link')
             elif request.form.get('add_text',False):
+                #Return to page because they added a text blob
                 return redirect(f'/{key}/admin/add/text')
             else:
                 return redirect(f'/{key}')
@@ -588,6 +706,17 @@ def mint_badge(key):
         return redirect(f'/{key}?success=1')
     else:
         return redirect(f'/{key}?success=0')
+
+@app.route('/<key>/admin/badge')
+@login_required
+def toggle_badge(key):
+    if not current_user.is_authenticated:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=False)
+    elif current_user.key == key:
+        current_user.toggle_badge()
+    return redirect(f'/{key}')
+        
 
 @app.route('/<key>',methods=['POST'])
 def create_iota_account(key):

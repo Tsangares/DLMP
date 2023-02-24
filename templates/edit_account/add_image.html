@@ -1,0 +1,41 @@
+<div class="card block">
+    <header class="card-header">
+        <p class="card-header-title">Image Upload</p>
+    </header>
+    <div class="card-content">
+        <div class="field">
+            <span class="label">The image must be aspect ratio 1:1 and a minimum of 250px on either side.</span>
+            <span class="note">Images will be center cropped to 1:1 aspect ratio.</span><br>
+            
+            <div id="image-upload" class="file has-name">
+                <label class="file-label is-justify-content-center">
+                  <input class="file-input" type="file" id="image-upload" name="image" accept="image/png,image/jpg"></input>
+                  <span class="file-cta">
+                    <span class="file-icon">
+                      <i class="fas fa-upload"></i>
+                    </span>
+                    <span class="file-label">
+                      Choose a file…
+                    </span>
+                  </span>
+                  <span class="file-name is-fullwidth" id="image-filename">
+                    Must be png or jpg.
+                  </span>
+                </label>
+              </div>
+        </div>
+        {% if image %}
+        <div id="image-content">
+            <figure class="image image-preview">
+                <img id="image-preview" src="data:image/{{image.filetype}};base64,{{image.data}}">
+            </figure>
+        </div>
+        {% endif %}
+    </div>
+    {% if image %}
+    <footer class="card-footer">
+        <button type='submit' class="card-footer-item button is-success is-light" name='view'
+            value="Confirm Redirect">View Image</button>
+    </footer>
+    {% endif %}
+</div>

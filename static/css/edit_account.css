@@ -1,0 +1,12 @@
+#image-content{
+    display: flex;
+    justify-content: center;
+}
+#image-preview,.image-preview{
+    max-width: 50vmin;
+    height: auto;
+    transition: all .2s ease-in-out;
+}
+#image-upload{
+    justify-content: center;
+}
