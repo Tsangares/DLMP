@@ -27,8 +27,10 @@ from flask_limiter.util import get_remote_address
 from PIL import Image
 from io import BytesIO
 import numpy as np
+from pillow_heif import register_heif_opener
 import logging
 logging.basicConfig(level=logging.DEBUG)
+register_heif_opener()
 
 #Flask 
 app = Flask(__name__)
@@ -95,7 +97,7 @@ class EditForm(FlaskForm):
     name = StringField('Name or Title (Required)',validators=[DataRequired()])
     blurb = StringField('Subtitle')
     address = StringField('IOTA Address (for donations)')
-    redirect = StringField('Permenant Rediret for your DLMP (One Time Use)')
+    redirect = StringField('Perminant Rediret for your DLMP (One Time Use)')
     
 link_actions = [
     ('open', "Open the link"),
@@ -306,17 +308,17 @@ class User(UserMixin):
     
     
     def upload_image(self,image):
-        app.logger.info("HERE")
         filename = image.filename
         
         filetype = filename.split('.')[-1].lower()
         if filetype=='jpg': filetype='jpeg'
+        if filetype=='heif': filetype='jpeg'
         def process_image(image):
             img = Image.open(image.stream)
             width,height = img.size
             #crop
             length = min([width,height])
-            app.logger.info(length)
+            app.logger.info(f"Cropping image of resoultion ({width},{height})")
             center = np.array((width/2,height/2))
             left,upper = (center-length/2).tolist()
             right,lower = (left+length,upper+length)

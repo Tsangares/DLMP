@@ -1,4 +1,5 @@
 certifi==2021.10.8
+cffi==1.15.1
 charset-normalizer==2.0.9
 click==8.0.3
 DateTime==4.3
@@ -19,6 +20,8 @@ Markdown==3.3.6
 MarkupSafe==2.0.1
 numpy==1.22.2
 Pillow==9.0.0
+pillow-heif==0.9.3
+pycparser==2.21
 pymongo==4.0.1
 PyQRCode==1.2.1
 python-dateutil==2.8.2
