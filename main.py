@@ -46,14 +46,17 @@ app.config.update(
     SESSION_COOKIE_SAMESITE = "None",
     SESSION_COOKIE_SECURE = True
 )
+MONGO_URI = f"mongodb://{cred['username']}:{cred['password']}@{cred['db_domain']}:{cred['port']}/{cred['db']}?authSource=test"
 limiter = Limiter(
-    app,
-    key_func=get_remote_address,
+    get_remote_address,
+    app=app,
     default_limits=["60 per minute"],
+    storage_uri=MONGO_URI,
+    strategy="fixed-window"
 )
 #Mongodb
 app.config['MONGO_DBNAME'] = 'iota_hat'
-app.config["MONGO_URI"] = f"mongodb://{cred['username']}:{cred['password']}@{cred['db_domain']}:{cred['port']}/{cred['db']}?authSource=test"
+app.config["MONGO_URI"] = MONGO_URI
 mongo = PyMongo(app)
 
 #Markdown
@@ -61,7 +64,7 @@ Markdown(app)
 
 #IOTA
 LOCAL_NODE_URL = "https://chrysalis-nodes.iota.org"
-client = iota_client.Client(nodes_name_password=[[LOCAL_NODE_URL]], node_sync_disabled=True)
+client = iota_client.IotaClient({'nodes': [LOCAL_NODE_URL]})
 
 
 #Login - Accounts
