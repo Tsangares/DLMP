@@ -107,7 +107,7 @@ class EditForm(FlaskForm):
     name = StringField('Name or Title (Required)',validators=[DataRequired()])
     blurb = StringField('Subtitle')
     address = StringField('IOTA Address (for donations)')
-    redirect = StringField('Perminant Rediret for your DLMP (One Time Use) (NEEDS https://)')
+    redirect = StringField('Permanent Rediret for your DLMP (One Time Use) (NEEDS https://)')
     
 link_actions = [
     ('open', "Open the link"),
