@@ -1,62 +1,72 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    {% include 'header.html' %}    
-    <title>Customize</title>
-	<link rel="stylesheet" href="/static/css/edit_account.css">
-  </head>
-  <body>
-    <form action='/{{key}}/admin' method="POST" enctype=multipart/form-data>
-      <div class="container">
-	
-	<div class="box">
-	  <div class="title">
-	    <span>Edit Account</span>
-	    <div class="block" style="float: right">
-	      <button class="button is-success" href="/{{key}}">Home</button>	      
-	    </div>
-	  </div>
-	  <div class="sub-title">Customize the landing page for users.</div>
-	</div>
-	<div class="block">
-	  {% if error %}
-	  <div class="notification is-danger">{{error}}</div>
-	  {%endif%}
-	  {% if notify %}
-	  <div class="notification is-info">{{notify}}</div>
-	  {%endif%}
-	</div>
-	
-	<div class="card block">
-	  <div class="card-content">
-	    {{ form.csrf_token }}
-	    <div class="field">
-	      {{ form.name.label(class_="label")}} {{form.name(size=20,class_="input")}}
-	    </div>
-	    <div class="field">
-	      {{ form.blurb.label(class_="label")}} {{form.blurb(size=20,class_="input")}}
-	    </div>
-	  </div>
-	  <footer class="card-footer">
-	    <button type='submit' class="card-footer-item button is-success" name='login' value="subtmit">Save</button>
-	    <button type='submit' class="card-footer-item button is-success is-light" name='edit' value="submit">Save & Edit</button>
-	  </footer>
-	</div>
-	{% include 'edit_account/add_image.html' %}
-	{% include 'edit_account/content_links.html' %}
-	{% include 'edit_account/content_text.html' %}
-	
-	{% include 'edit_account/edit_account_iota.html' %}
-	{% include 'edit_account/add_redirect.html' %}
 
-    </form>
-    <div class="block">
-      <button class="button is-success" href="/{{key}}">Home</button>
-      <a href="/{{key}}/admin/badge"><span class="button is-link">{% if account.badge_enabled %}Disable Badges{% else %}Enable Badges{% endif %}</span></a>
-    </div>
-    <div class="block" />    
-  </body>
-  <footer>
-    <script src="/static/js/account_edit.js"></script>
-  </footer>
+<head>
+	{% include 'header.html' %}
+	<title>Customize</title>
+	<link rel="stylesheet" href="/static/css/edit_account.css">
+</head>
+
+<body>
+	<form action='/{{key}}/admin' method="POST" enctype="multipart/form-data">
+
+		{{ form.hidden_tag() }}
+		<div class="container">
+			<!-- Title -->
+			<div class="box">
+				<div class="title">
+					<span>Edit Account</span>
+					<div class="block" style="float: right">
+						<button class="button is-success" href="/{{key}}">View Page</button>
+					</div>
+				</div>
+				<div class="sub-title">Customize the landing page for users.</div>
+			</div>
+			<div class="block">
+				{% if error %}
+				<div class="notification is-danger">{{error}}</div>
+				{%endif%}
+				{% if notify %}
+				<div class="notification is-info">{{notify}}</div>
+				{%endif%}
+			</div>
+
+			<!-- Name Field -->
+			<div class="card block">
+				<div class="card-content">
+					<div class="field">
+						{{ form.name.label(class_="label")}} {{form.name(size=20,class_="input")}}
+					</div>
+					<div class="field">
+						{{ form.blurb.label(class_="label")}} {{form.blurb(size=20,class_="input")}}
+					</div>
+				</div>
+				<footer class="card-footer">
+					<button type='submit' class="card-footer-item button is-success" name='login'
+						value="subtmit">Save</button>
+					<button type='submit' class="card-footer-item button is-success is-light" name='edit'
+						value="submit">Save & Edit</button>
+				</footer>
+			</div>
+
+			<!-- Other Fields -->
+			{% include 'edit_account/add_image.html' %}
+			{% include 'edit_account/content_links.html' %}
+			{% include 'edit_account/content_text.html' %}
+
+			{% include 'edit_account/edit_account_iota.html' %}
+			{% include 'edit_account/add_redirect.html' %}
+
+	</form>
+	<div class="block">
+		<button class="button is-success" href="/{{key}}">View Page</button>
+		<a href="/{{key}}/admin/badge"><span class="button is-link">{% if account.badge_enabled %}Disable Badges{% else
+				%}Enable Badges{% endif %}</span></a>
+	</div>
+	<div class="block" />
+</body>
+<footer>
+	<script src="/static/js/account_edit.js"></script>
+</footer>
+
 </html>

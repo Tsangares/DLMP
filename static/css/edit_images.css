@@ -1,0 +1,10 @@
+.card-image{
+    text-align: center;
+    transition: all .2s ease-in-out;
+    max-height: 50vmin;
+    max-width: 50vmin;
+}
+.image-container{
+    display:flex;
+    justify-content: center;
+}

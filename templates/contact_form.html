@@ -1,0 +1,22 @@
+<form method="POST" action="/contact_us/email">
+    {{ contact_form.hidden_tag()}}
+    <div class="field">
+        {{ contact_form.name.label(class_="label") }}
+        {{ contact_form.name(size=20,class_="input") }}
+    </div>
+    <div class="field">
+        {{ contact_form.email.label(class_="label") }}
+        {{ contact_form.email(size=20,class_="input") }}
+    </div>
+    <div class="field">
+        {{ contact_form.key.label(class_="label") }}
+        {{ contact_form.key(size=20,class_="input") }}
+    </div>
+    <div class="field">
+        {{ contact_form.message.label(class_="label") }}
+        {{ contact_form.message(size=20,class_="textarea") }}
+    </div>
+    <div class="control">
+        <button class="button is-link" type="submit" name="contact">Send Message</button>
+    </div>
+</form>

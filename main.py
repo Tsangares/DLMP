@@ -7,15 +7,15 @@ from badge import make_badge,mk_badge
 from PIL import Image,ImageFont,ImageDraw
 
 from werkzeug.middleware.proxy_fix import ProxyFix
-import json,os,hashlib,datetime,time,logging,dateutil
+import json,os,hashlib,datetime,time,logging
 import flask,requests,pymongo,base64
 from flask import Blueprint,Flask,request,redirect,render_template,session,flash,abort,make_response,send_file
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager,login_required,login_user,UserMixin,current_user,logout_user
 from flask_wtf import FlaskForm
-from wtforms import StringField,PasswordField,SubmitField,RadioField,SelectMultipleField,widgets,HiddenField,FileField
-from wtforms.validators import DataRequired
+from wtforms import StringField,PasswordField,SubmitField,RadioField,SelectMultipleField,widgets,HiddenField,FileField,EmailField,TextAreaField
+from wtforms.validators import DataRequired, Email
 from wtforms import validators
 from bson.objectid import ObjectId
 from urllib.parse import urlparse, urljoin
@@ -24,12 +24,13 @@ from flask.sessions import SecureCookieSessionInterface
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from PIL import Image
+from PIL import Image, ImageOps
+import exifread
 from io import BytesIO
 import numpy as np
 from pillow_heif import register_heif_opener
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 register_heif_opener()
 
 #Flask 
@@ -77,6 +78,12 @@ csrf = CSRFProtect(app)
 def get_ip():
     return request.environ.get('HTTP_X_REAL_IP', request.environ.get('REMOTE_ADDR',None))
 
+@app.template_filter('strftime')
+def _jinja2_filter_datetime(date, fmt=None):
+    native = date.replace(tzinfo=None)
+    format='%b %d, %Y'
+    return native.strftime(format) 
+
 #Forms
 class LoginForm(FlaskForm):
     passkey = StringField('Passkey',validators=[DataRequired()])
@@ -100,7 +107,7 @@ class EditForm(FlaskForm):
     name = StringField('Name or Title (Required)',validators=[DataRequired()])
     blurb = StringField('Subtitle')
     address = StringField('IOTA Address (for donations)')
-    redirect = StringField('Perminant Rediret for your DLMP (One Time Use)')
+    redirect = StringField('Perminant Rediret for your DLMP (One Time Use) (NEEDS https://)')
     
 link_actions = [
     ('open', "Open the link"),
@@ -114,8 +121,14 @@ class TextForm(ContentForm):
     text = StringField('Subtext',validators=[DataRequired()])
 
 class RedirectForm(ContentForm):
-    link = StringField('redirect')
+    link = StringField('Title',validators=[DataRequired()])
 
+class ContactForm(FlaskForm):
+    hidden_key = HiddenField()
+    key = StringField('Micropage Link (if there is an issues with your webpage)')
+    name = StringField('Your Name',validators=[DataRequired()])
+    email = EmailField('Your Email to Respond',validators=[DataRequired(),Email()])
+    message = TextAreaField('Message',validators=[DataRequired()])
 
 class Badge:
     def __init__(self,badge):
@@ -317,7 +330,10 @@ class User(UserMixin):
         if filetype=='jpg': filetype='jpeg'
         if filetype=='heif': filetype='jpeg'
         def process_image(image):
+            tags = exifread.process_file(image.stream, details=True)
+            exif = {tag:str(tags[tag]) for tag in tags.keys()}
             img = Image.open(image.stream)
+            img = ImageOps.exif_transpose(img)
             width,height = img.size
             #crop
             length = min([width,height])
@@ -330,9 +346,9 @@ class User(UserMixin):
                 img = img.resize((1_000,1_000))
             buffer = BytesIO()
             img.save(buffer, format=filetype)
-            return base64.b64encode(buffer.getvalue())
-        
-        image_encoded = process_image(image)
+            
+            return base64.b64encode(buffer.getvalue()), exif, *img.size
+        image_encoded,exif,width,height = process_image(image)
         mongo.db.images.insert_one({
             'key': self._id,
             'time_created': datetime.datetime.now(),
@@ -340,20 +356,44 @@ class User(UserMixin):
             'data': image_encoded,
             'filetype': filetype,
             'ip_created': get_ip(),
-            'agent': request.user_agent.string
+            'agent': request.user_agent.string,
+            'width': width,
+            'height': height,
+            'exif': exif
         })
-    def get_images(self):
+        
+    def get_images(self,render=True):
         images =  [c for c in mongo.db.images.find({'key': self._id})]
+        if render:
+            for image in images:
+                image['data'] = image['data'].decode('utf-8')
+            return images
         return images
+    
     def get_image(self):
-        images = self.get_images()
-        if len(images)==0:
-            return None
+        if 'display_image' in self.account:
+            image = mongo.db.images.find_one({'key': self._id,'_id': self.account['display_image']})
         else:
-            img = images[-1]
-            img['data'] = img['data'].decode('utf-8')
-            return img
-       
+            images = self.get_images(render=False)
+            if len(images)==0:
+                return None
+            image = images[-1]
+        
+        image['data'] = image['data'].decode('utf-8')
+        return image
+    
+    def set_image(self,image_id):
+        self.refresh()
+        image_id = ObjectId(image_id)
+        image = mongo.db.images.find_one({'key': self._id, '_id': image_id})
+        if image is None: return
+        mongo.db.users.update_one({'key': self.key},{'$set': {
+            'display_image': image['_id']
+        }})
+    def del_image(self,image_id):
+        image_id = ObjectId(image_id)
+        mongo.db.images.delete_one({'key': self._id, '_id': image_id})
+    
     def toggle_badge(self):
         self.refresh()
         if 'badge_enabled' in self.account and self.account['badge_enabled']:
@@ -379,12 +419,15 @@ class User(UserMixin):
             }})
             self.account['redirect'] = link
         elif link is not None:
-            mongo.db.users.update_one({'key': self.key},{'$set': {
-                'redirect': link
-            }},upsert=True)
-            self.account['redirect'] = link
+            if link is validate_link(link):
+                mongo.db.users.update_one({'key': self.key},{'$set': {
+                    'redirect': link
+                }},upsert=True)
+                self.account['redirect'] = link
+            else: return False
+        return True
             
-        
+
 
 #@app.route('/refresh_links/',methods=['GET'])
 def refresh_links():
@@ -443,8 +486,13 @@ def get_homepage():
     error_message = None
     if error == 'key':
         error_message = "The key/url you provided is invalid."
-    return render_template('index.html',error=error_message)
-
+    elif error == 'email_success':
+        error_message = "Email sucessfully sent."
+    elif error == 'email_invalid':
+         error_message = "Email failed to send."
+    key = current_user.key if current_user.is_authenticated else None
+    contact_form = ContactForm(key=key,hidden_key=key)
+    return render_template('index.html',error=error_message,contact_form=contact_form,key=key)
 
 def send_img(string):
     #img = qrcode.make(string.upper(),back_color="white")
@@ -595,7 +643,7 @@ def iota_key_admin_edit(key):
         if new_image is not None:
             current_user.upload_image(new_image)
         if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
-            current_user.set_redirect()
+            successful_redirect = current_user.set_redirect()
         image = current_user.get_image()
         image_form = ImageForm()
         links = current_user.get_links()
@@ -603,7 +651,7 @@ def iota_key_admin_edit(key):
         name = request.form.get('name','').strip()
         address = request.form.get('address','').strip()
         blurb = request.form.get('blurb','').strip()
-        edit_account_form = EditForm()
+        edit_account_form = EditForm(data=current_user.account)
         if address != '' and not client.is_address_valid(address):
             #ERROR PATH
             error_message = "The address given is not a valid IOTA address!"
@@ -652,6 +700,34 @@ def iota_key_admin_edit(key):
     else:
         #Possibly add a logout here!
         return redirect(f'/{key}')
+    
+#IMAGES
+@app.route('/<key>/admin/images/',methods=['GET','POST'])
+@login_required
+def get_account_images(key):
+    if not current_user.is_authenticated or current_user.key != key:
+        return redirect(f'/{key}')
+    images = current_user.get_images()
+    return render_template('edit_account/edit_images.html',key=key,account=current_user.account,images=images)
+
+@app.route('/<key>/admin/del_image/<image_id>',methods=['GET'])
+@login_required
+def delete_account_image(key,image_id):
+    if not current_user.is_authenticated or current_user.key != key:
+        return redirect(f'/{key}')
+    current_user.del_image(image_id)
+    images = current_user.get_images()
+    return render_template('edit_account/edit_images.html',key=key,account=current_user.account,images=images)
+
+
+@app.route('/<key>/admin/set_image/<image_id>',methods=['GET'])
+@login_required
+def set_account_image(key,image_id):
+    if not current_user.is_authenticated or current_user.key != key:
+        return redirect(f'/{key}')
+    current_user.set_image(image_id)
+    return redirect(f'/{key}')
+
 
 #LINK
 @app.route('/<key>/admin/add/link',methods=['GET'])
@@ -849,7 +925,34 @@ def reject_friend_account(key):
     r=current_user.reject_friend(key)
     return redirect(f'/{key}?friend_request={r}')
 
+
+@app.route("/contact_us/email",methods=['POST'])
+def contact_us_email():
+    contact_form = ContactForm()
+    if contact_form.validate_on_submit():
+        email = {
+            'name': request.form.get("name","No Name"),
+            'email': request.form.get("email",None),
+            'message': request.form.get("message",None),
+            'key': request.form.get('key',None),
+            'hidden_key': request.form.get('hidden_key',None)
+        }
+        if not os.path.exists('emails'):
+            os.mkdir('emails')
+        clock=int(time.time())
+        with open(f'./emails/{clock}.json','w+') as f:
+            json.dump(email,f,indent=2)
+        return redirect(f'/?error=email_success')
+    else:
+        url = request.form.get("url",None)
+        if url is None:
+            return {'error': 'invalid request'}
+        else:
+            return redirect('/?error=email_invalid')
+    
+
+
 if __name__=="__main__":
-    app.run(host='localhost',port='8099',debug=True)
+    app.run(host='0.0.0.0',port='8099',debug=True)
 
 

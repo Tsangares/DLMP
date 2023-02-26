@@ -3,3 +3,4 @@ cred.json
 .mongo*
 *~
 __pycache__
+emails/

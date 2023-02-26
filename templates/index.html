@@ -31,6 +31,21 @@
 	      </form>
 	    </div>
 	  </div>
+	  {% if key %}
+		<div class="column">
+			<div class="box">
+			<form action='/{{key}}' method="GET" class="form">
+			<div class="field">
+			<label class="label">You are Logged in!</label>
+			<p>Here is a link to your micro page:</p>
+			</div>
+			<div class="control">
+			<button class="button is-link is-light">View Page</button>
+			</div>
+			</form>
+			</div>
+		</div>
+	  {% endif %}
 	  <div class="column">
 	    <div class="box">
 	      <form action='/58c56465b91' method="GET" class="form">

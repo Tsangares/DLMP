@@ -17,7 +17,7 @@
 
 {% if not user.account.redirect %}
 <body>
-  <div class="container">
+  <div id="account-container" class="container">
     {% if name != '' or blurb != '' %}
     <div class="block box">
       {% if name != '' %}
@@ -28,7 +28,7 @@
       {% endif %}
     </div>
     {% endif %}
-
+    
     {% include 'account/account_image.html' %}
 
     {% include 'account/account_texts.html' %}
