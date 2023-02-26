@@ -419,7 +419,7 @@ class User(UserMixin):
             }})
             self.account['redirect'] = link
         elif link is not None:
-            if link is validate_link(link):
+            if validate_link(link):
                 mongo.db.users.update_one({'key': self.key},{'$set': {
                     'redirect': link
                 }},upsert=True)
@@ -427,6 +427,8 @@ class User(UserMixin):
             else: return False
         return True
             
+def validate_link(link):
+    return True
 
 
 #@app.route('/refresh_links/',methods=['GET'])
