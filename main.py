@@ -391,6 +391,7 @@ class User(UserMixin):
         
     def get_images(self,render=True):
         images =  [c for c in mongo.db.images.find({'key': self._id})]
+        images.reverse()
         if render:
             for image in images:
                 image['data'] = image['data'].decode('utf-8')
@@ -404,7 +405,7 @@ class User(UserMixin):
             images = self.get_images(render=False)
             if len(images)==0:
                 return None
-            image = images[-1]
+            image = images[0]
         
         image['data'] = image['data'].decode('utf-8')
         return image
