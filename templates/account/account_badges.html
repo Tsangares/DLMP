@@ -1,91 +1,116 @@
 {% if user.account.badge_enabled %}
 {% if badges | length > 0 or ( logged_in and key == user.key and not minted )%}
 <div class="block">
-  <h4 class="title">Badges</h4>  
-  <div id="badges" class="content">
-    {% if logged_in and key == user.key and not minted %}
-    <a class="column is-narrow" href="/{{key}}/mint">
-      <button class="button is-success">
-	<span class="material-icons">flare</span>
-	&nbsp;
-	Mint Badge
-      </button>
-    </a>
-    {% endif %}
+	<h4 class="title">Badges</h4>
+	<div id="badges" class="content">
+		{% if logged_in and key == user.key and not minted %}
+		<a class="column is-narrow" href="/{{key}}/mint">
+			<button class="button is-success">
+				<span class="material-icons">flare</span>
+				&nbsp;
+				Mint Badge
+			</button>
+		</a>
+		{% endif %}
 
-    {% for badge in badges %}
-    <div class="card">
-      <div class="card-header center">
-	<img class="badge" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}" src="/badge/{{badge.key}}" />
-      </div>
-      <div class="card-content">
-	<div class="columns is-multiline">
-	  <label class="column is-full" title="Badge creat or.">Id: {{badge.key}}</label>
-	  <label class="column is-full" title="Increments every 10 seconds.">Influence: {{badge.influence}}</label>
-	  <label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun: {{badge.renoun}}</label>	  
+		{% for badge in badges %}
+		<div class="card">
+			<div class="card-header center">
+				<img class="badge" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}"
+					src="/badge/{{badge.key}}" />
+			</div>
+			<div class="card-content">
+				<div class="columns is-multiline">
+					<label class="column is-full" title="Badge creat or.">Id: {{badge.key}}</label>
+					<label class="column is-full" title="Increments every 10 seconds.">Influence:
+						{{badge.influence}}</label>
+					<label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun:
+						{{badge.renoun}}</label>
+				</div>
+			</div>
+		</div>
+		{% endfor %}
 	</div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
 </div>
 {% endif %}
 {% endif %}
 {% if friends | length > 0 %}
 <div class="block">
-  <h4 class="title">Connections</h4>
-  <div id="friend-requests" class="columns is-centered">
-    {% for badge in friends %}
-    <div class="column">
-      <div class="card">
-	<div class="card-header center">
-	  <img class="badge" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}" src="/badge/{{badge.key}}" />
+	<h4 class="title">Connections</h4>
+	<div id="friend-requests" class="columns is-centered">
+		{% for badge in friends %}
+		<div class="column">
+			<div class="card">
+				<div class="card-header center">
+					{% if badge.image %}
+					<img class="badge-image" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}"
+						src="data:image/{{badge.image.filetype}};base64,{{badge.image.data}}" />
+					{% else %}
+					<img class="badge" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}"
+						src="/badge/{{badge.key}}" />
+					{% endif %}
+				</div>
+				<div class="card-content">
+					<div class="columns is-multiline">
+						<label class="column is-narrow" title="Badge creator.">Id: {{badge.key}}</label>
+						<label class="column is-full" title="Increments every 10 seconds.">Influence:
+							{{badge.influence}}</label>
+						<label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun:
+							{{badge.renoun}}</label>
+					</div>
+				</div>
+				<div class="card-footer bottom-foot">
+					<a title="Accept" href="/{{badge.key}}" class="card-footer-item">
+						<span class="has-text-centered">View</span>
+					</a>
+				</div>
+			</div>
+		</div>
+		{% endfor %}
 	</div>
-	<div class="card-content">
-	  <div class="columns is-multiline">
-	    <label class="column is-narrow" title="Badge creator.">Id: {{badge.key}}</label>
-	    <label class="column is-full" title="Increments every 10 seconds.">Influence: {{badge.influence}}</label>
-	    <label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun: {{badge.renoun}}</label>
-	  </div>
-	</div>
-	<div class="card-footer bottom-foot">
-	  <a title="Accept" href="/{{badge.key}}" class="card-footer-item">
-	    <span class="has-text-centered">View</span>
-	  </a>
-	</div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
 </div>
 {% endif %}
 {% if friend_requests | length > 0 %}
 <div class="block">
-  <h4 class="title">Connection Requests</h4>
-  <div id="friend-requests" class="columns is-centered">
-    {% for badge in friend_requests %}
-    <div class="card">
-      <div class="card-header">
-	<img class="badge" alt="Badge of {{badge.key}}" title="Badge of {{badge.key}}" src="/badge/{{badge.key}}" />
-	<div class="card-content">
-	  <div class="columns is-multiline">
-	    <label class="column is-full" title="Badge creator.">Id: {{badge.key}}</label>
-	    <label class="column is-full" title="Increments every 10 seconds.">Influence: <span class="influence">{{badge.time_created}}</span></label>
-	    <label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun: {{badge.renoun}}</label>	    
-	  </div>
+	<h4 class="title">Connection Requests</h4>
+	<div id="friend-requests" class="columns is-centered">
+		{% for request in friend_requests %}
+		<div class="card">
+			<div class="card-header">
+				{% if request.image %}
+				<img class="badge-image" alt="Badge of {{request.key}}" title="Badge of {{request.key}}"
+					src="data:image/{{request.image.filetype}};base64,{{request.image.data}}" />
+				{% else %}
+				<img class="badge" alt="Badge of {{request.key}}" title="Badge of {{request.key}}"
+					src="/badge/{{request.key}}" />
+				{% endif %}
+				<div class="card-content">
+					<div class="columns is-multiline">
+						<label class="column is-full" title="Name">Name: {{request.name}}</label>
+						<label class="column is-full" title="Badge creator.">Id: {{request.key}}</label>
+						<!--
+						<label class="column is-full" title="Increments every 10 seconds.">Influence: <span
+								class="influence">{badge.time_created}</span></label>
+						<label class="column is-full" title="Number of DLMP that have connected to this badge.">Renoun:
+							{badge.renoun}</label>
+							-->
+					</div>
+				</div>
+			</div>
+			<footer class="card-footer bottom-foot">
+				<a title="Accept" href="/{{request.key}}/accept" class="card-footer-item is-success">
+					<span class="has-text-centered">Accept</span>
+				</a>
+				<a title="Accept" href="/{{request.key}}" class="card-footer-item is-success">
+					<span class="has-text-centered">View</span>
+				</a>
+				<a title="reject" href="/{{request.key}}/reject" class="card-footer-item is-failure">
+					<span class="has-text-centered">Reject</span>
+				</a>
+			</footer>
+
+		</div>
+		{% endfor %}
 	</div>
-      </div>
-      <footer class="card-footer bottom-foot">
-	<a title="Accept" href="/{{badge.key}}/accept" class="card-footer-item is-success">
-	  <span class="has-text-centered">Accept</span>
-	</a>
-	<a title="reject" href="/{{badge.key}}/reject" class="card-footer-item is-failure">
-	  <span class="has-text-centered">Reject</span>
-	</a>
-      </footer>
-      
-    </div>
-    {% endfor %}
-  </div>
 </div>
 {% endif %}

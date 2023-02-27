@@ -131,14 +131,16 @@ class ContactForm(FlaskForm):
     message = TextAreaField('Message',validators=[DataRequired()])
 
 class Badge:
-    def __init__(self,badge):
+    def __init__(self,badge,image=None):
         self.badge = badge
+        self.image = None
         self.key = badge['key']
         self.renoun = mongo.db.link.count_documents({'parent_key': self.key})
         self.name = badge['name']
         self.created = badge['time_created']
         self.influence = int((time.time() - badge['time_created'].timestamp())/10)
-        
+    def set_image(self,image):
+        self.image = image
         
 class User(UserMixin):
     def __init__(self, key):
@@ -166,8 +168,20 @@ class User(UserMixin):
     def friends_badges(self):
         badges = []
         for friend in self.friends:
-            badges += User(friend['key']).badges
+            f = User(friend['key'])
+            badge = f.badge
+            badge.set_image(f.get_image())
+            badges.append(badge)
         return badges
+    
+    def get_friend_requests(self):
+        self.refresh()
+        friends_req_list = self.account.get('friend_requests',[])
+        friends = [mongo.db.users.find_one({'_id': _id}) for _id in friends_req_list]
+        for friend in friends:
+            friend['image'] = User(friend['key']).get_image()
+        return friends
+    
     @property
     def friend_requests(self):
         self.refresh()
@@ -184,6 +198,10 @@ class User(UserMixin):
     @property
     def badges(self):
         return [Badge(b) for b in mongo.db.badges.find({'owner': self._id})]
+    
+    @property
+    def badge(self):
+        return Badge(mongo.db.badges.find_one({'owner': self._id}))
     
     def get_links(self):
         return [User.fix_link(c) for c in mongo.db.content.find({'key': self.key, 'type': 'link'})]
@@ -256,9 +274,9 @@ class User(UserMixin):
     def confirm_friend(self,key):
         self.refresh()
         friend = mongo.db.users.find_one({'key': key})
-        if friend is None: return None
-        friend_requested = str(friend['_id']) in [str(f) for f in self.friend_requests]
-        already_my_friend = str(friend['_id']) in [str(f) for f in self.friends]
+        if friend is None: return False
+        friend_requested = str(friend['_id']) in [str(f['_id']) for f in self.friend_requests]
+        already_my_friend = str(friend['_id']) in [str(f['_id']) for f in self.friends]
         if friend_requested and not already_my_friend:
             r1=mongo.db.users.update_one({'_id': friend['_id']}, {
                 '$push': {'friends': self._id},
@@ -268,8 +286,13 @@ class User(UserMixin):
                 '$push': {'friends': friend['_id']},
                 '$pull': {'friend_requests': friend['_id']}
             })
-            print("Results update:",r1,r2)
-            self.link_friend(friend)
+            app.logger.info(f"Results update: {r1} {r2}")
+            self.link(friend)
+            return True
+        if not friend_requested:
+            return "no-friend-request"
+        elif not already_my_friend:
+            return "already-friend"
 
     #Duplicate safe
     def link(self,friend):
@@ -413,7 +436,6 @@ class User(UserMixin):
         delete = request.form.get('del_redirect',None)
         link = request.form.get('redirect',None)
         if delete is not None and 'redirect' in self.account:
-            app.logger.info('deleting redirect')
             #Delete
             mongo.db.users.update_one({'key': self.key},{'$unset': {'redirect': ""}})
             self.account['redirect'] = ""
@@ -485,8 +507,6 @@ def get_homepage():
     key = request.args.get('key',None)
     view = 'view' in request.args
     edit = 'edit' in request.args
-    app.logger.info(view)
-    app.logger.info(edit)
     if key is not None:
         key=[k for k in key.replace(' ','').strip().split('/') if len(k) in VALID_HASH_LEN]
         if len(key) > 0: key=key[0]
@@ -587,7 +607,7 @@ def get_iota_view(key):
     logged_in = current_user.is_authenticated
     if logged_in and key==current_user.key:
         friends = current_user.friends_badges
-        friend_requests = current_user.friend_requests
+        friend_requests = current_user.get_friend_requests() #get images
     else:
         friends = user.friends_badges
         friend_requests = []
@@ -660,7 +680,6 @@ def iota_key_admin_edit(key):
         if new_image is not None:
             return_to_edit=True
             current_user.upload_image(new_image)
-        app.logger.info(request.form)
         if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
             return_to_edit=True
             successful_redirect = current_user.set_redirect()
@@ -673,9 +692,7 @@ def iota_key_admin_edit(key):
         name = request.form.get('name','').strip()
         address = request.form.get('address','').strip()
         blurb = request.form.get('blurb','').strip()
-        app.logger.info(current_user.account)
         edit_account_form = EditForm(data=current_user.account)
-        app.logger.info(current_user.account)
         # Entered an iota address
         if address != '' and not client.is_address_valid(address):
             #ERROR PATH
@@ -943,7 +960,7 @@ def connect_account(key):
 @login_required
 def confirm_friend_account(key):
     r=current_user.confirm_friend(key)
-    return redirect(f'/{key}?friend_request={r}')
+    return redirect(f'/{current_user.key}?friend_request={r}')
 
 @app.route('/<key>/reject',methods=['GET'])
 @login_required
