@@ -201,7 +201,11 @@ class User(UserMixin):
     
     @property
     def badge(self):
-        return Badge(mongo.db.badges.find_one({'owner': self._id}))
+        badge = mongo.db.badges.find_one({'owner': self._id})
+        if badge is None:
+            return Badge(mongo.db.users.find_one({'_id': self._id}))
+        else:
+            return Badge(badge)
     
     def get_links(self):
         return [User.fix_link(c) for c in mongo.db.content.find({'key': self.key, 'type': 'link'})]
