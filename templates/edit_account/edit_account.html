@@ -25,8 +25,7 @@
 			<div class="block">
 				{% if error %}
 				<div class="notification is-danger">{{error}}</div>
-				{%endif%}
-				{% if notify %}
+				{% elif notify%}
 				<div class="notification is-info">{{notify}}</div>
 				{%endif%}
 			</div>

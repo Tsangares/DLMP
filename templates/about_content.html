@@ -43,8 +43,29 @@
         <p>How do I edit the webpage?</p>
       </div>
       <div class="message-body">
-        <p>Hidden on the DLMP apparel, you will find a key. This key is entered on the digital clones web-page to
+        <p>Hidden on the DLMP apparel, you will find a passcode. This passcode is entered your apparel's web-page to
           authorize your ownership and will allow you to customize the content on the page.</p>
+        <p>To help you navigate to the webpage scan the QR code or enter your url's ID into the <a
+            href='/#nav-panel'>Navigation Panel</a> at the top of the homepage.</p>
+      </div>
+    </article>
+  </div>
+  <div class="column is-full">
+    <article class="message">
+      <div class="message-header">
+        <p>How do change my redirect?</p>
+      </div>
+      <div class="message-body">
+        <p>To change a redirect you need to navigate to your admin panel.</p>
+        <p>To navigate to your admin panel enter your url's ID into the <a href='/#nav-panel'>Navigation Panel</a> at
+          the top of the homepage and hit <b>Edit</b></p>
+        {% if key %}
+        <div class="block">
+          <span class="label">You are already logged in!</span>
+          <p>You can edit your webpage through this button,</p>
+          <a href="/{{key}}/admin" class="button is-link">Edit MiroPage</a></p>
+        </div>
+        {% endif %}
       </div>
     </article>
   </div>

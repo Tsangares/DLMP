@@ -413,22 +413,23 @@ class User(UserMixin):
         delete = request.form.get('del_redirect',None)
         link = request.form.get('redirect',None)
         if delete is not None and 'redirect' in self.account:
+            app.logger.info('deleting redirect')
             #Delete
-            mongo.db.users.update_one({'key': self.key},{'$set': {
-                'redirect': False
-            }})
-            self.account['redirect'] = link
+            mongo.db.users.update_one({'key': self.key},{'$unset': {'redirect': ""}})
+            self.account['redirect'] = ""
+            return True
         elif link is not None:
             if validate_link(link):
                 mongo.db.users.update_one({'key': self.key},{'$set': {
                     'redirect': link
                 }},upsert=True)
                 self.account['redirect'] = link
+                return True
             else: return False
-        return True
+        return False
             
 def validate_link(link):
-    return True
+    return r'https://' in link.lower() and r'.' in link.lower()
 
 
 #@app.route('/refresh_links/',methods=['GET'])
@@ -482,8 +483,20 @@ def hash_page(custom=False):
 @app.route('/',methods=['GET'])
 def get_homepage():
     key = request.args.get('key',None)
+    view = 'view' in request.args
+    edit = 'edit' in request.args
+    app.logger.info(view)
+    app.logger.info(edit)
     if key is not None:
-        return redirect(f'/{key}')
+        key=[k for k in key.replace(' ','').strip().split('/') if len(k) in VALID_HASH_LEN]
+        if len(key) > 0: key=key[0]
+        else: key is None
+        if view and key is not None:
+            return redirect(f'/{key}')
+        elif edit and key is not None:
+            return redirect(f'/{key}/admin')
+        else:
+            return redirect(f'/?error=key')
     error = request.args.get('error',None)
     error_message = None
     if error == 'key':
@@ -640,12 +653,19 @@ def iota_key_admin_edit(key):
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
     elif current_user.key == key:
+        return_to_edit = request.form.get('edit',False)
+        error_message=None
         new_image = request.files['image']
         if new_image.filename == "": new_image=None
         if new_image is not None:
+            return_to_edit=True
             current_user.upload_image(new_image)
+        app.logger.info(request.form)
         if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
+            return_to_edit=True
             successful_redirect = current_user.set_redirect()
+            if not successful_redirect:
+                error_message = "Your redirect link was malformed."
         image = current_user.get_image()
         image_form = ImageForm()
         links = current_user.get_links()
@@ -653,7 +673,10 @@ def iota_key_admin_edit(key):
         name = request.form.get('name','').strip()
         address = request.form.get('address','').strip()
         blurb = request.form.get('blurb','').strip()
+        app.logger.info(current_user.account)
         edit_account_form = EditForm(data=current_user.account)
+        app.logger.info(current_user.account)
+        # Entered an iota address
         if address != '' and not client.is_address_valid(address):
             #ERROR PATH
             error_message = "The address given is not a valid IOTA address!"
@@ -669,36 +692,37 @@ def iota_key_admin_edit(key):
                 image=image,
                 deleted=request.args.get('deleted',None),
             )
+            
+        #SUCCESS PATH
+        mongo.db.users.update_one({'key': key},{'$set': {
+            'address': address,
+            'name': name,
+            'blurb': blurb
+        }})
+        #Return to edit page if they uploaded and image of edit is false
+        #If edit is  True then the person is still editing their page.
+        if return_to_edit:
+            return render_template(
+                'edit_account/edit_account.html',
+                key=key,
+                form=edit_account_form,
+                image_form=image_form,
+                account=current_user.account,
+                error=error_message,
+                notify="Saved!",
+                links=links,
+                texts=texts,
+                image=image,
+                deleted=request.args.get('deleted',None),
+            )
+        elif request.form.get('add_link',False):
+            #Return to page because they added a link
+            return redirect(f'/{key}/admin/add/link')
+        elif request.form.get('add_text',False):
+            #Return to page because they added a text blob
+            return redirect(f'/{key}/admin/add/text')
         else:
-            #SUCCESS PATH
-            mongo.db.users.update_one({'key': key},{'$set': {
-                'address': address,
-                'name': name,
-                'blurb': blurb
-            }})
-            #Return to edit page if they uploaded and image of edit is false
-            #If edit is  True then the person is still editing their page.
-            if request.form.get('edit',False) or new_image is not None:
-                return render_template(
-                    'edit_account/edit_account.html',
-                    key=key,
-                    form=edit_account_form,
-                    image_form=image_form,
-                    account=current_user.account,
-                    notify="Saved!",
-                    links=links,
-                    texts=texts,
-                    image=image,
-                    deleted=request.args.get('deleted',None),
-                )
-            elif request.form.get('add_link',False):
-                #Return to page because they added a link
-                return redirect(f'/{key}/admin/add/link')
-            elif request.form.get('add_text',False):
-                #Return to page because they added a text blob
-                return redirect(f'/{key}/admin/add/text')
-            else:
-                return redirect(f'/{key}')
+            return redirect(f'/{key}')
     else:
         #Possibly add a logout here!
         return redirect(f'/{key}')
