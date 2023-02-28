@@ -376,7 +376,7 @@ class User(UserMixin):
             
             return base64.b64encode(buffer.getvalue()), exif, *img.size
         image_encoded,exif,width,height = process_image(image)
-        mongo.db.images.insert_one({
+        image = mongo.db.images.insert_one({
             'key': self._id,
             'time_created': datetime.datetime.now(),
             'time_modified': datetime.datetime.now(),
@@ -388,6 +388,7 @@ class User(UserMixin):
             'height': height,
             'exif': exif
         })
+        self.set_image(image.inserted_id)
         
     def get_images(self,render=True):
         images =  [c for c in mongo.db.images.find({'key': self._id})]
@@ -412,12 +413,15 @@ class User(UserMixin):
     
     def set_image(self,image_id):
         self.refresh()
-        image_id = ObjectId(image_id)
+        if isinstance(image_id,str):
+            image_id = ObjectId(image_id)
         image = mongo.db.images.find_one({'key': self._id, '_id': image_id})
         if image is None: return
         mongo.db.users.update_one({'key': self.key},{'$set': {
             'display_image': image['_id']
         }})
+        self.account['display_image'] = image['_id']
+        
     def del_image(self,image_id):
         image_id = ObjectId(image_id)
         mongo.db.images.delete_one({'key': self._id, '_id': image_id})
