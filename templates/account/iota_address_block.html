@@ -1,3 +1,10 @@
+{% if 'iota' in address[:4] %}
+{% set token_name = "IOTA" %}
+{% set network = "mainnet" %}
+{% else %}
+{% set token_name = "Shimmer" %}
+{% set network = "shimmer" %}
+{% endif %}
 <div class="block card">
   <div class="card-content">
     <div class="block has-text-centered">
@@ -6,17 +13,20 @@
     </div>
     <div class="block">
       <div class="field">
-	<label class="label"><i class="fas fa-wallet"></i>&nbsp;IOTA Recieving Address</label>
-	<button id="address" class="button is-fullwidth left clip" onclick="copy(this)" value="{{address}}"><i class="far fa-copy"></i>&nbsp;{{address}}</input>
-	  
+        <label class="label"><i class="fas fa-wallet"></i>&nbsp;{{token_name}} Recieving Address</label>
+        <button id="address" class="button is-fullwidth left clip" onclick="copy(this)" value="{{address}}"><i
+            class="far fa-copy"></i>&nbsp;{{address}}</input>
       </div>
-      <a title="IOTA Wallet Donate" target="_blank" href="iota://wallet/send/{{address}}/?amount=1000000&unit=i">
-	<button class="button is-link is-light bold">
-	  <img class="icn" src="/static/img/firefly_icon.png"/>&nbsp;Send IOTA
-	</button>
+      <a>
+        <button disabled  class="button is-link bold" >Balance: &nbsp;<span id="address-balance">...</span></button>
       </a>
-      <a target="_blank" href="https://explorer.iota.org/mainnet/search/{{address}}">
-	<button class="button is-link is-light"><i class="fab fa-wpexplorer"></i> &nbsp;View on Explorer</button>
+      <!-- <a title="{{token_name}} Wallet Donate" target="_blank" href="iota://wallet/send/{{address}}/?amount=1000000&unit=i">
+        <button class="button is-link is-light bold">
+          <img class="icn" src="/static/img/firefly_icon.png" />&nbsp;Send {{token_name}}
+        </button>
+      </a> -->
+      <a target="_blank" href="https://explorer.iota.org/{{network}}/search/{{address}}">
+        <button class="button is-link is-light"><i class="fab fa-wpexplorer"></i> &nbsp;View on Explorer</button>
       </a>
     </div>
     <div class="block">
@@ -24,4 +34,10 @@
     </div>
   </div>
   {% include 'iota/iota_links.html' %}
+  <script>
+    fetch('/balance/{{address}}')
+      .then(r=>r.text()) 
+      .then((bal)=>{$("#address-balance").text(bal)})
+      .catch(console.log)
+  </script>
 </div>

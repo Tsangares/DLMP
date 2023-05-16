@@ -1,4 +1,6 @@
-import iota_client,qrcode,io,hashlib,logging,random,segno
+import iota_client
+import iota_wallet as iw
+import qrcode,io,hashlib,logging,random,segno
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer,HorizontalBarsDrawer
 from qrcode.image.styles.colormasks import RadialGradiantColorMask
@@ -8,7 +10,7 @@ from PIL import Image,ImageFont,ImageDraw
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 import json,os,hashlib,datetime,time,logging
-import flask,requests,pymongo,base64
+import flask,requests,pymongo,base64,math
 from flask import Blueprint,Flask,request,redirect,render_template,session,flash,abort,make_response,send_file
 from flask_pymongo import PyMongo
 from flask_wtf.csrf import CSRFProtect
@@ -64,9 +66,22 @@ mongo = PyMongo(app)
 Markdown(app)
 
 #IOTA
-LOCAL_NODE_URL = "https://chrysalis-nodes.iota.org"
-client = iota_client.IotaClient({'nodes': [LOCAL_NODE_URL]})
+IOTA_NODES = ["https://multiverse.dlt.green/",
+              "https://iotabot-106.dlt.green/",
+              "https:///austria.dlt.green/"
+              ]
+SHIMMER_NODES = [
+    "https://api.shimmer.network",
+    "https://shimmer.iotatangle.us",
+    "https://multiverse.dlt.builders",
+    "https://lithuania.dlt.builders",
+  ]
+#IOTA_NODES = ['https://iota.org/']
+client = iota_client.IotaClient({'nodes': SHIMMER_NODES})
 
+# Get the node info
+node_info = client.get_info()
+print(f'{node_info}')
 
 #Login - Accounts
 login_manager = LoginManager()
@@ -1002,6 +1017,67 @@ def contact_us_email():
         else:
             return redirect('/?error=email_invalid')
     
+def si_unit_iota(val):
+    val = float(val)
+    if math.floor(math.log10(val)) < 3: 
+        return f"{int(val)} IOTA"
+    elif math.floor(math.log10(val)) < 3*2: 
+        return f"{int(val/(10**(3)))} KIOTA"
+    elif math.floor(math.log10(val)) < 3*3: 
+        return f"{int(val/(10**(3*2)))} MIOTA"
+    elif math.floor(math.log10(val)) < 3*4: 
+        return f"{int(val/(10**(3*3)))} GIOTA"
+    elif math.floor(math.log10(val)) < 3*5: 
+        return f"{int(val/(10**(3*4)))} TIOTA"
+    elif math.floor(math.log10(val)) < 3*6: 
+        return f"{int(val/(10*(3*5)))} PIOTA"
+def si_unit_smr(val):
+    val = float(val)
+    if math.floor(math.log10(val)) < 3: 
+        return f"{int(val)} uSMR"
+    elif math.floor(math.log10(val)) < 3*2: 
+        return f"{int(val/(10**(3)))} mSMR"
+    elif math.floor(math.log10(val)) < 3*3: 
+        return f"{int(val/(10**(3*2)))} SMR"
+    elif math.floor(math.log10(val)) < 3*4: 
+        return f"{int(val/(10**(3*3)))} KSMR"
+    elif math.floor(math.log10(val)) < 3*5: 
+        return f"{int(val/(10**(3*4)))} GSMR"
+    elif math.floor(math.log10(val)) < 3*6: 
+        return f"{int(val/(10*(3*5)))} TSMR"
+
+@app.route('/balance/<address>')
+def get_balance(address: str):
+    if not client.is_address_valid(address):
+        return {'error': 'Not a valid address'}
+    elif address[:4]=="iota":
+        return si_unit_iota(get_iota_balance(address))
+    elif address[:3]=="smr":
+        return si_unit_smr(get_smr_balance(address))
+    else:
+        return {'error': 'This token is not supported'}
+def get_smr_balance(address):
+    output_ids = client.basic_output_ids([{"address": address},
+                                        {"hasExpiration": False},
+                                        {"hasTimelock": False},
+                                        {"hasStorageDepositReturn": False}, ])
+    outputs = client.get_outputs(output_ids)
+    total_amount = 0
+    for output_response in outputs:
+        output = output_response['output']
+        total_amount += int(output['amount'])
+    return str(total_amount)
+
+def get_iota_balance(address):
+    #https://multiverse.dlt.green/api/v1/addresses/iota1qpqlpvhmjwxwh06qwsgznrx48j8rkjewxdj6ytcxfz9pctdwdg48wjflpay
+    domain = IOTA_NODES[0]
+    endpoint = f"{domain}api/v1/addresses/{address}"
+    logging.warning(endpoint)
+    r = requests.get(endpoint)
+    if r.status_code==200 and 'data' in r.json():
+        return str(r.json()['data']['balance'])
+    else:
+        return {'error': 'No balance for this address', 'data': r.text}
 
 
 if __name__=="__main__":

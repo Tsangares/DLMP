@@ -2,7 +2,7 @@
 <html>
   <head>
 	{% set domain = request.headers['Host'] %}
-	{% set url = request.url_root %}
+	{% set url = request.host_url %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">        
     <link rel="stylesheet" href="/static/css/bulma.css">
@@ -27,6 +27,8 @@
 	  <p>New Account</p>
 	</div>
 	<div class="message-body">
+
+	{{request.headers}}
 	  <div class="field">	  
 	    <label class="label">Passkey</label>
 	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="{{key}}">
