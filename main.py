@@ -121,7 +121,7 @@ class ImageForm(FlaskForm):
 class EditForm(FlaskForm):
     name = StringField('Name or Title (Required)',validators=[DataRequired()])
     blurb = StringField('Subtitle')
-    address = StringField('IOTA Address (for donations)')
+    address = StringField('IOTA or Shimmer Address (for donations)')
     redirect = StringField('Permanent Rediret for your DLMP (One Time Use) (NEEDS https://)')
     
 link_actions = [

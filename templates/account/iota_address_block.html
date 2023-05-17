@@ -1,8 +1,10 @@
 {% if 'iota' in address[:4] %}
 {% set token_name = "IOTA" %}
+{% set token_icon = "iota_icon.png" %}
 {% set network = "mainnet" %}
 {% else %}
 {% set token_name = "Shimmer" %}
+{% set token_icon = "shimmer_icon.png" %}
 {% set network = "shimmer" %}
 {% endif %}
 <div class="block card">
@@ -29,9 +31,11 @@
         <button class="button is-link is-light"><i class="fab fa-wpexplorer"></i> &nbsp;View on Explorer</button>
       </a>
     </div>
+    <!--
     <div class="block">
       {% include 'iota/iota_faq.html' %}
     </div>
+    -->
   </div>
   {% include 'iota/iota_links.html' %}
   <script>

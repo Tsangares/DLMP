@@ -8,11 +8,15 @@
     align-items:center;
 }
 .icn{
-    padding: 10px;
+    padding: 8px;
     height: 34px;
     width: auto;
 }
-
+.icn.token{
+    padding: 5px;
+    height: 34px;
+    width: auto;
+}
 #qr-image{
     height: 25vh;
     width: auto;
