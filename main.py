@@ -1,5 +1,4 @@
 import iota_client
-import iota_wallet as iw
 import qrcode,io,hashlib,logging,random,segno
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer,HorizontalBarsDrawer
