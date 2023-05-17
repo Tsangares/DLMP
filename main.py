@@ -36,10 +36,28 @@ register_heif_opener()
 
 #Flask 
 app = Flask(__name__)
-cred = json.load(open('dlmp_cred/cred.json'))
+
+cred_file = 'dlmp_cred/cred.json'
+if os.path.exists(cred_file):
+    cred = json.load(open(cred_file))
+else:
+    cred = None
+    
+def get_cred(key):
+    if cred is not None and key in cred:
+            return cred[key]
+    elif key in os.environ:
+        return os.environ[key]
+    
+def get_mongo_uri():
+    if cred is not None:
+        return f"mongodb://{cred['username']}:{cred['password']}@{cred['db_domain']}:{cred['port']}/{cred['db']}?authSource=test"
+    else:
+        return os.environ["MONGO_URI"]
+    
 application = app
-app.secret_key = cred['secret']
-SALT = cred['salt'].encode('utf-8')
+app.secret_key = get_cred('secret')
+SALT = get_cred('salt').encode('utf-8')
 HASH_LEN = 11
 VALID_HASH_LEN = [8,11]
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1 ,x_proto=1)
@@ -48,7 +66,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE = "None",
     SESSION_COOKIE_SECURE = True
 )
-MONGO_URI = f"mongodb://{cred['username']}:{cred['password']}@{cred['db_domain']}:{cred['port']}/{cred['db']}?authSource=test"
+MONGO_URI = get_mongo_uri()
 limiter = Limiter(
     get_remote_address,
     app=app,
