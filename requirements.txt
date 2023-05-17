@@ -19,6 +19,7 @@ gunicorn==20.1.0
 idna==3.4
 importlib-resources==5.12.0
 install==1.3.5
+iota-client==1.0.0rc2
 itsdangerous==2.1.2
 Jinja2==3.1.2
 limits==3.5.0
@@ -52,4 +53,3 @@ Werkzeug==2.3.4
 wrapt==1.15.0
 WTForms==3.0.1
 zope.interface==6.0
-./resources/iota_client-1.0.0rc2-cp310-cp310-manylinux_2_34_x86_64.whl
