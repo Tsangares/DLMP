@@ -1,10 +1,12 @@
 {% if 'iota' in address[:4] %}
 {% set token_name = "IOTA" %}
 {% set token_icon = "iota_icon.png" %}
+{% set token_wiki = "https://wiki.iota.org/learn/about-iota/an-introduction-to-iota/" %}
 {% set network = "mainnet" %}
 {% else %}
 {% set token_name = "Shimmer" %}
 {% set token_icon = "shimmer_icon.png" %}
+{% set token_wiki = "https://wiki.iota.org/shimmer/learn/welcome/" %}
 {% set network = "shimmer" %}
 {% endif %}
 <div class="block card">
