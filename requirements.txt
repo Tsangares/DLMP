@@ -40,4 +40,3 @@ urllib3==2.0.2
 Werkzeug==2.3.4
 wrapt==1.15.0
 WTForms==3.0.1
-./resources/iota_client-1.0.0rc2-cp39-cp39-manylinux_2_34_x86_64.whl
