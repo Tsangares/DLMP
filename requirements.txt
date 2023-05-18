@@ -16,7 +16,6 @@ Flask-PyMongo==2.3.0
 Flask-WTF==1.1.1
 idna==3.4
 importlib-resources==5.12.0
-iota-client==1.0.0rc2
 itsdangerous==2.1.2
 Jinja2==3.1.2
 limits==3.5.0
@@ -41,3 +40,4 @@ urllib3==2.0.2
 Werkzeug==2.3.4
 wrapt==1.15.0
 WTForms==3.0.1
+./resources/iota_client-1.0.0rc2-cp39-cp39-manylinux_2_34_x86_64.whl
