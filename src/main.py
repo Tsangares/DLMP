@@ -48,7 +48,8 @@ else:
     cred = None
     
 def is_valid_address(string):
-    return len(string) == 32 and ('iota' in string or 'smr' in string)
+    #return len(string) >= 60 and ('iota' in string or 'smr' in string)
+    return bool(requests.get("https://helper.yque.net/address/{address}").text())
 
 def get_cred(key):
     if cred is not None and key in cred:
