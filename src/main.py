@@ -30,6 +30,11 @@ from io import BytesIO
 import numpy as np
 from pillow_heif import register_heif_opener
 import logging
+from dotenv import load_dotenv
+import os
+cwd = os.getcwd()
+
+load_dotenv()
 logging.basicConfig(level=logging.INFO)
 register_heif_opener()
 
@@ -898,8 +903,8 @@ def send_png(img):
     img_io.seek(0)    
     return send_file(img_io,mimetype='image/png')
 
-font = ImageFont.truetype("static/ubuntu.ttf",66)
-smallfont = ImageFont.truetype("static/ubuntu.ttf",49)
+font = ImageFont.truetype("src/static/ubuntu.ttf",66)
+smallfont = ImageFont.truetype("src/static/ubuntu.ttf",49)
 def mk_account(rows=4,columns=3,page_width=7,page_height=10):
     key = get_rand_key()
     w,h=font.getsize(key)
