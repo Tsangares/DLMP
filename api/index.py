@@ -4,7 +4,10 @@ from qrcode.image.styles.moduledrawers import RoundedModuleDrawer,HorizontalBars
 from qrcode.image.styles.colormasks import RadialGradiantColorMask
 
 #Relative import
-from .badge import make_badge,mk_badge
+try:
+    from .badge import make_badge,mk_badge
+except ImportError:
+    from badge import make_badge,mk_badge
 
 from PIL import Image,ImageFont,ImageDraw
 
