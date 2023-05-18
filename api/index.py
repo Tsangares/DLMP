@@ -3,7 +3,9 @@ from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer,HorizontalBarsDrawer
 from qrcode.image.styles.colormasks import RadialGradiantColorMask
 
-from badge import make_badge,mk_badge
+#Relative import
+from .badge import make_badge,mk_badge
+
 from PIL import Image,ImageFont,ImageDraw
 
 from werkzeug.middleware.proxy_fix import ProxyFix
