@@ -1,4 +1,3 @@
-import iota_client
 import qrcode,io,hashlib,logging,random,segno
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer,HorizontalBarsDrawer
@@ -43,6 +42,9 @@ if os.path.exists(cred_file):
 else:
     cred = None
     
+def is_valid_address(string):
+    return len(string) == 32 and ('iota' in string or 'smr' in string)
+
 def get_cred(key):
     if cred is not None and key in cred:
             return cred[key]
@@ -81,24 +83,6 @@ mongo = PyMongo(app)
 
 #Markdown
 Markdown(app)
-
-#IOTA
-IOTA_NODES = ["https://multiverse.dlt.green/",
-              "https://iotabot-106.dlt.green/",
-              "https:///austria.dlt.green/"
-              ]
-SHIMMER_NODES = [
-    "https://api.shimmer.network",
-    "https://shimmer.iotatangle.us",
-    "https://multiverse.dlt.builders",
-    "https://lithuania.dlt.builders",
-  ]
-#IOTA_NODES = ['https://iota.org/']
-client = iota_client.IotaClient({'nodes': SHIMMER_NODES})
-
-# Get the node info
-node_info = client.get_info()
-print(f'{node_info}')
 
 #Login - Accounts
 login_manager = LoginManager()
@@ -735,7 +719,7 @@ def iota_key_admin_edit(key):
         blurb = request.form.get('blurb','').strip()
         edit_account_form = EditForm(data=current_user.account)
         # Entered an iota address
-        if address != '' and not client.is_address_valid(address):
+        if address != '' and not is_valid_address(address):
             #ERROR PATH
             error_message = "The address given is not a valid IOTA address!"
             return render_template(
@@ -900,19 +884,8 @@ def logout(key):
 
 @app.route('/generate',methods=['GET'])
 def mnemonic():
-    mnemonic = client.generate_mnemonic()
-    print("Mnemonic:",mnemonic)
-    seed = client.mnemonic_to_hex_seed(mnemonic)
-    address_changed_list = client.get_addresses(
-        seed=seed,
-        account_index=0,
-        input_range_begin=0,
-        input_range_end=1,
-        get_all=False
-    )
-    address,change = address_changed_list[0]
-    print('Address:',address)
-    return f"<tt><b>Mnemonic:</b> {mnemonic}<br><b>Address:</b> {address}</tt>"
+    return {'error': "This endpoint is removed."}
+    
 def send_pdf(img):
     img_io = io.BytesIO()
     img.save(img_io,'pdf')
@@ -1033,73 +1006,14 @@ def contact_us_email():
             return {'error': 'invalid request'}
         else:
             return redirect('/?error=email_invalid')
-    
-def si_unit_iota(val):
-    val = float(val)
-    if val == 0: return "0 IOTA"
-    if math.floor(math.log10(val)) < 3: 
-        return f"{int(val)} IOTA"
-    elif math.floor(math.log10(val)) < 3*2: 
-        return f"{int(val/(10**(3)))} KIOTA"
-    elif math.floor(math.log10(val)) < 3*3: 
-        return f"{int(val/(10**(3*2)))} MIOTA"
-    elif math.floor(math.log10(val)) < 3*4: 
-        return f"{int(val/(10**(3*3)))} GIOTA"
-    elif math.floor(math.log10(val)) < 3*5: 
-        return f"{int(val/(10**(3*4)))} TIOTA"
-    elif math.floor(math.log10(val)) < 3*6: 
-        return f"{int(val/(10*(3*5)))} PIOTA"
-def si_unit_smr(val):
-    val = float(val)
-    if val == 0: return "0 SMR"
-    if math.floor(math.log10(val)) < 3: 
-        return f"{int(val)} uSMR"
-    elif math.floor(math.log10(val)) < 3*2: 
-        return f"{int(val/(10**(3)))} mSMR"
-    elif math.floor(math.log10(val)) < 3*3: 
-        return f"{int(val/(10**(3*2)))} SMR"
-    elif math.floor(math.log10(val)) < 3*4: 
-        return f"{int(val/(10**(3*3)))} KSMR"
-    elif math.floor(math.log10(val)) < 3*5: 
-        return f"{int(val/(10**(3*4)))} GSMR"
-    elif math.floor(math.log10(val)) < 3*6: 
-        return f"{int(val/(10*(3*5)))} TSMR"
 
 @app.route('/balance/<address>')
 def get_balance(address: str):
-    if not client.is_paddress_valid(address):
+    if not is_valid_address(address):
         return {'error': 'Not a valid address'}
-    elif address[:4]=="iota":
-        return si_unit_iota(get_iota_balance(address))
-    elif address[:3]=="smr":
-        return si_unit_smr(get_smr_balance(address))
-    else:
-        return {'error': 'This token is not supported'}
-def get_smr_balance(address):
-    output_ids = client.basic_output_ids([{"address": address},
-                                        {"hasExpiration": False},
-                                        {"hasTimelock": False},
-                                        {"hasStorageDepositReturn": False}, ])
-    outputs = client.get_outputs(output_ids)
-    total_amount = 0
-    for output_response in outputs:
-        output = output_response['output']
-        total_amount += int(output['amount'])
-    return str(total_amount)
-
-def get_iota_balance(address):
-    #https://multiverse.dlt.green/api/v1/addresses/iota1qpqlpvhmjwxwh06qwsgznrx48j8rkjewxdj6ytcxfz9pctdwdg48wjflpay
-    domain = IOTA_NODES[0]
-    endpoint = f"{domain}api/v1/addresses/{address}"
-    logging.warning(endpoint)
-    r = requests.get(endpoint)
-    if r.status_code==200 and 'data' in r.json():
-        return str(r.json()['data']['balance'])
-    else:
-        return {'error': 'No balance for this address', 'data': r.text}
-
+    return requests.get("https://helper.yque.net/balance/{address}").text()
 
 if __name__=="__main__":
-    app.run(host='0.0.0.0',port='8099',debug=True)
+    app.run(host='localhost',port='8099',debug=True)
 
 
