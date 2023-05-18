@@ -1036,6 +1036,7 @@ def contact_us_email():
     
 def si_unit_iota(val):
     val = float(val)
+    if val == 0: return "0 IOTA"
     if math.floor(math.log10(val)) < 3: 
         return f"{int(val)} IOTA"
     elif math.floor(math.log10(val)) < 3*2: 
@@ -1050,6 +1051,7 @@ def si_unit_iota(val):
         return f"{int(val/(10*(3*5)))} PIOTA"
 def si_unit_smr(val):
     val = float(val)
+    if val == 0: return "0 SMR"
     if math.floor(math.log10(val)) < 3: 
         return f"{int(val)} uSMR"
     elif math.floor(math.log10(val)) < 3*2: 
