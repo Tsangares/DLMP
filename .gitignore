@@ -3,4 +3,6 @@ cred.json
 .mongo*
 *~
 __pycache__
-emails/
+emails
+.env
+dlmp_cred
