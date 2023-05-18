@@ -47,9 +47,10 @@ if os.path.exists(cred_file):
 else:
     cred = None
     
-def is_valid_address(string):
+def is_valid_address(address):
     #return len(string) >= 60 and ('iota' in string or 'smr' in string)
-    return bool(requests.get("https://helper.yque.net/address/{address}").text())
+    response = requests.get(f"https://helper.yque.net/address/{address}").text.strip() == "True"
+    return response
 
 def get_cred(key):
     if cred is not None and key in cred:
@@ -1015,9 +1016,10 @@ def contact_us_email():
 
 @app.route('/balance/<address>')
 def get_balance(address: str):
-    if not is_valid_address(address):
-        return {'error': 'Not a valid address'}
-    return requests.get("https://helper.yque.net/balance/{address}").text()
+    is_valid = is_valid_address(address)
+    if not is_valid:
+        return {'error': 'Not a valid address', 'address': address, 'valid': is_valid, 'valid_type': type(is_valid)}
+    return requests.get(f"https://helper.yque.net/balance/{address}").text
 
 if __name__=="__main__":
     app.run(host='localhost',port='8099',debug=True)
