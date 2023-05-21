@@ -891,7 +891,7 @@ def complete_login(key,passkey):
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=True,hashed=hashed_pass[:len(key)])
     
-@app.route('/<key>/p/<passkey>',methods=['POST'])
+@app.route('/<key>/p/<passkey>',methods=['GET'])
 def auto_login(key,passkey):
     return complete_login(key,passkey)
 
