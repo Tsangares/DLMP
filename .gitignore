@@ -4,3 +4,4 @@ cred.json
 *~
 __pycache__
 emails/
+.env
