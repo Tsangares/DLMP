@@ -6,3 +6,4 @@ __pycache__
 emails
 .env
 dlmp_cred
+emails/

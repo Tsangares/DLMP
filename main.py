@@ -358,14 +358,11 @@ class User(UserMixin):
     def is_anonymous():
         return False
 
-    #Get URL key of the user
-    def get_key(self) -> str:
+    def get_key():
         return self.key
 
-    #Get URL key of the user
-    def get_id(self) -> str:
+    def get_id(self):
         return self.key
-    
     @staticmethod
     def create_user(key):
         ip = get_ip()
@@ -378,6 +375,7 @@ class User(UserMixin):
                 'time_created': timestamp
             })
         login_user(User(key=key))
+        return redirect(f'/{key}/admin')
     
     
     def upload_image(self,image):
@@ -881,27 +879,16 @@ def toggle_badge(key):
     return redirect(f'/{key}')
         
 
-#LOGIN TO PROFILE
-def complete_login(key,passkey):
-    hashed_pass = unique_hash(passkey)
-    if hashed_pass[:len(key)].upper() == key.upper():
-        User.create_user(key)
-        return redirect(f'/{key}/admin')
-    else:
-        form = LoginForm()
-        return render_template('login.html',key=key,form=form,failed=True,hashed=hashed_pass[:len(key)])
-    
-@app.route('/<key>/p/<passkey>',methods=['POST'])
-def auto_login(key,passkey):
-    return complete_login(key,passkey)
-
 @app.route('/<key>',methods=['POST'])
 def create_iota_account(key):
     passkey = request.form.get('passkey','')
-    return complete_login(key,passkey)
+    hashed_pass = unique_hash(passkey)
+    if hashed_pass[:len(key)].upper() == key.upper():
+        return User.create_user(key)
+    else:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=True,hashed=hashed_pass[:len(key)])
 
-
-#LOGOUT OF PROFILE
 @app.route('/<key>/logout',methods=['GET'])
 def logout(key):
     logout_user()
