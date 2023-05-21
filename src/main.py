@@ -909,9 +909,8 @@ def send_png(img):
     img.save(img_io,'png',dpi=(int(300),int(300)))
     img_io.seek(0)    
     return send_file(img_io,mimetype='image/png')
-
-font = ImageFont.truetype("api/static/ubuntu.ttf",66)
-smallfont = ImageFont.truetype("api/static/ubuntu.ttf",49)
+font = ImageFont.truetype("src/static/ubuntu.ttf",66)
+smallfont = ImageFont.truetype("src/static/ubuntu.ttf",49)
 def mk_account(rows=4,columns=3,page_width=7,page_height=10):
     key = get_rand_key()
     w,h=font.getsize(key)
