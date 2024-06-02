@@ -24,7 +24,9 @@ from wtforms.validators import DataRequired, Email
 from wtforms import validators
 from bson.objectid import ObjectId
 from urllib.parse import urlparse, urljoin
-from flaskext.markdown import Markdown
+
+#from flaskext.markdown import Markdown
+
 from flask.sessions import SecureCookieSessionInterface
 
 from flask_limiter import Limiter
@@ -94,7 +96,7 @@ app.config["MONGO_URI"] = MONGO_URI
 mongo = PyMongo(app)
 
 #Markdown
-Markdown(app)
+#Markdown(app)
 
 #Login - Accounts
 login_manager = LoginManager()
@@ -926,7 +928,9 @@ font = ImageFont.truetype("src/static/ubuntu.ttf",66)
 smallfont = ImageFont.truetype("src/static/ubuntu.ttf",49)
 def mk_account(rows=4,columns=3,page_width=7,page_height=10):
     key = get_rand_key()
-    w,h=font.getsize(key)
+    l,t,r,b=font.getbbox(key)
+    w = abs(l-r)
+    h = abs(b-t)
     h_offset = 10
     hashed = unique_hash(key)
     url = f"YQue.net/{hashed}"    

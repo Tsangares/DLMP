@@ -3,6 +3,11 @@
 {% set token_icon = "iota_icon.png" %}
 {% set token_link = "https://wiki.iota.org/learn/about-iota/an-introduction-to-iota/" %}
 {% set network = "mainnet" %}
+{% elif 'rms' in address[:3] %}
+{% set token_name = "Shimmer" %}
+{% set token_icon = "shimmer_icon.png" %}
+{% set token_link = "https://wiki.iota.org/shimmer/learn/welcome/" %}
+{% set network = "testnet" %}
 {% else %}
 {% set token_name = "Shimmer" %}
 {% set token_icon = "shimmer_icon.png" %}

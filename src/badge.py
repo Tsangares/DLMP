@@ -122,7 +122,7 @@ def mk_badge():
         'ribbonWidth': random.randint(int(50),int(75+25*ribbon_weight)),
         'ribbonHeight': random.randint(200,int(200 + 25*ribbon_weight)),
         'insigniaQuantity': random.randint(3,9),
-        'insigniaRadius': random.randint(10,25+25*(polygonDegree-3)/5),
+        'insigniaRadius': random.randint(10,int(25+25*(polygonDegree-3)/5)),
         'insigniaWidth': random.randint(1,2),
     }
     
