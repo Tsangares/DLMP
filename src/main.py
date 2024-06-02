@@ -929,9 +929,9 @@ smallfont = ImageFont.truetype("src/static/ubuntu.ttf",49)
 def mk_account(rows=4,columns=3,page_width=7,page_height=10):
     key = get_rand_key()
     l,t,r,b=font.getbbox(key)
-    w = abs(l-r)
-    h = abs(b-t)
-    h_offset = 10
+    w = abs(l-r)*1.10
+    h = abs(b-t)*2
+    h_offset = 30
     hashed = unique_hash(key)
     url = f"YQue.net/{hashed}"    
     width = int(page_width*300/columns)
