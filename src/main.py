@@ -1040,7 +1040,7 @@ def get_balance(address: str):
     is_valid = is_valid_address(address)
     if not is_valid:
         return {'error': 'Not a valid address', 'address': address, 'valid': is_valid, 'valid_type': type(is_valid)}
-    return requests.get(f"https://helper.yque.net/balance/{address}").text
+    return requests.get(f"https://iota.applesauce.chat/balance/{address}").text
 
 if __name__=="__main__":
     app.run(host='localhost',port='8099',debug=True)
