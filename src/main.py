@@ -884,17 +884,20 @@ def toggle_badge(key):
         
 
 #LOGIN TO PROFILE
-def complete_login(key,passkey):
+def complete_login(key,passkey,view=False):
     hashed_pass = unique_hash(passkey)
     if hashed_pass[:len(key)].upper() == key.upper():
         User.create_user(key)
-        return redirect(f'/{key}/admin')
+        if view:
+            return redirect(f'/{key}')
+        else:
+            return redirect(f'/{key}/admin')
     else:
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=True,hashed=hashed_pass[:len(key)])
     
 @app.route('/<key>/p/<passkey>',methods=['GET'])
-def auto_login(key,passkey):
+def auto_login(key,passkey,view=True):
     return complete_login(key,passkey)
 
 @app.route('/<key>',methods=['POST'])
