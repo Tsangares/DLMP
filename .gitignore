@@ -8,3 +8,5 @@ emails
 dlmp_cred
 emails/
 src/tmp_static/
+*vapid*
+\#**\#

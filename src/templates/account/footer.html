@@ -1,5 +1,5 @@
 <footer class="footer">
-  <div class="content hat-text-centered">
+  <div class="content has-text-centered">
     {% if failed %}
     <div class="notification">You do not have permission to customize this page. You must logout first!</div>
     {% endif %}
@@ -44,6 +44,15 @@
         </button>
       </a>
       {% endif %}
+    </div>
+
+  </div>
+  <div class="content has-text-centered">
+    <div class="columns is-centered">
+      <div class="has-text-centered">
+	<span>Share</span><br />
+	<img src="/qr?q=https://yque.net/{{key}}" width="100px" height="100px" />
+	</div>
     </div>
   </div>
 </footer>

@@ -1,4 +1,5 @@
 import qrcode,io,hashlib,logging,random,segno
+import traceback
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer,HorizontalBarsDrawer
 from qrcode.image.styles.colormasks import RadialGradiantColorMask
@@ -14,9 +15,9 @@ from PIL import Image,ImageFont,ImageDraw
 from werkzeug.middleware.proxy_fix import ProxyFix
 import json,os,hashlib,datetime,time,logging
 import flask,requests,pymongo,base64,math
-from flask import Blueprint,Flask,request,redirect,render_template,session,flash,abort,make_response,send_file
+from flask import Blueprint,Flask,request,redirect,render_template,session,flash,abort,make_response,send_file, jsonify
 from flask_pymongo import PyMongo
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_login import LoginManager,login_required,login_user,UserMixin,current_user,logout_user
 from flask_wtf import FlaskForm
 from wtforms import StringField,PasswordField,SubmitField,RadioField,SelectMultipleField,widgets,HiddenField,FileField,EmailField,TextAreaField
@@ -39,9 +40,26 @@ from pillow_heif import register_heif_opener
 import logging
 from dotenv import load_dotenv
 import os
-cwd = os.getcwd()
 
+
+# NOTIFICATION IMPORTS
+from pywebpush import webpush, WebPushException
+
+
+# SMS IMPORTS
+from vonage import Auth, Vonage
+from vonage_sms import SmsMessage
+
+from sinch import SinchClient
+
+cwd = os.getcwd()
 load_dotenv()
+
+
+VAPID_PUBLIC_KEY  = os.getenv('VAPID_PUBLIC_KEY')
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY')
+VAPID_CLAIMS      = {"sub": "mailto:admin@yque.net"}
+
 logging.basicConfig(level=logging.INFO)
 register_heif_opener()
 
@@ -104,6 +122,9 @@ login_manager.init_app(app)
 login_manager.login_message = u"Bonvolu ensaluti por uzi tiun paĝon."
 csrf = CSRFProtect(app)
 
+# Nofication Code
+
+
 #User Accounts
 def get_ip():
     return request.environ.get('HTTP_X_REAL_IP', request.environ.get('REMOTE_ADDR',None))
@@ -136,7 +157,8 @@ class ImageForm(FlaskForm):
 class EditForm(FlaskForm):
     name = StringField('Name or Title (Required)',validators=[DataRequired()])
     blurb = StringField('Subtitle')
-    address = StringField('IOTA or Shimmer Address (for donations)')
+    phone_number = StringField('Phone Number for Notifications')
+    notify_text = StringField('Set Notification Text')
     redirect = StringField('Permanent Rediret for your DLMP (One Time Use) (NEEDS https://)')
     
 link_actions = [
@@ -180,6 +202,8 @@ class User(UserMixin):
         self.name = user.get('name','')
         self.account = user
         self.key = user['key']
+        self._phone_number = user.get('phone_number',None)
+        self._notify = user.get('notify_text','')
         
     def refresh(self):
         if (time.time() - self.last_refresh) > 10:
@@ -188,6 +212,31 @@ class User(UserMixin):
     def get_content(self):
         return [c for c in mongo.db.content.find({'key': self.key})]
 
+    @property
+    def notify_text(self):
+        return self._notify
+    
+    @notify_text.setter
+    def notify_text(self,value):        
+        self._notify = value[:50]
+        mongo.db.users.update_one({'key': self.key},{'$set': {
+            'notify_text': self._notify
+        }})
+    
+    
+    @property
+    def phone_number(self):
+        self.refresh()
+        if self._phone_number is None: return False
+        return self._phone_number
+    @phone_number.setter
+    def phone_number(self,value):
+        # Run check?
+        self._phone_number = value
+        mongo.db.users.update_one({'key': self.key},{'$set': {
+            'phone_number': self._phone_number
+        }})
+        
     @property
     def friends(self):
         self.refresh()
@@ -236,7 +285,8 @@ class User(UserMixin):
             return Badge(mongo.db.users.find_one({'_id': self._id}))
         else:
             return Badge(badge)
-    
+
+        
     def get_links(self):
         return [User.fix_link(c) for c in mongo.db.content.find({'key': self.key, 'type': 'link'})]
     
@@ -471,6 +521,31 @@ class User(UserMixin):
             }},upsert=True)
             self.account['badge_enabled'] = True
         return self.account['badge_enabled']
+
+    def toggle_public(self):
+        self.refresh()
+        #logging.error(f"TESTINDG: {self.name} {self.name is not None}; {self.name.strip()} {self.name.strip() != ''}")
+        if self.name is None or self.name.strip() == '':
+            return False
+        mongo.db.users.update_one({'key': self.key},{'$set': {
+            'public': True
+        }})
+        self.account['public'] = True
+        return self.account['public']        
+        
+    def toggle_notification(self):
+        self.refresh()
+        if 'notification' in self.account and self.account['notification']:
+            mongo.db.users.update_one({'key': self.key},{'$set': {
+                'notification': False
+            }})
+            self.account['notification'] = False
+        else:
+            mongo.db.users.update_one({'key': self.key},{'$set': {
+                'notification': True
+            }},upsert=True)
+            self.account['notification'] = True
+        return self.account['notification']
     
     def set_redirect(self):
         self.refresh()
@@ -532,6 +607,57 @@ def unique_hash(data):
 def get_rand_key():
     return ' '.join([''.join([str(random.randint(0,9)) for _ in range(3)]) for _ in range(4)])
 
+### MAIN PAGE ROUTES ###
+
+# VIEW: SUBSCRIBE TO BROWSER NOTIFICATIONS
+
+@app.route('/<key>/subscribe', methods=['POST'])
+@login_required
+def subscribe(key):
+    if not current_user.is_authenticated:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=False)
+    elif current_user.key != key:
+        return redirect('/{key}')
+            
+    subs = mongo.db.subscriptions
+    sub = request.get_json()
+    # upsert by endpoint
+    logging.warning(str(sub))
+    subs.update_one(
+        {'endpoint': sub['endpoint']},
+        {'$set': {
+            'endpoint':   sub['endpoint'],
+            'keys.auth':  sub['keys']['auth'],
+            'keys.p256dh':sub['keys']['p256dh'],
+            'key': key,
+        }},
+        upsert=True
+    )
+    return "Success"
+
+# Method: UNSUBSCRIBE
+@app.route('/<key>/unsubscribe', methods=['POST'])
+def unsubscribe(key):
+    if not current_user.is_authenticated:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=False)
+    elif current_user.key != key:
+        return redirect('/{key}')
+    
+    data = request.get_json()
+    endpoint = data.get('endpoint')
+    if not endpoint:
+        return jsonify(error="No endpoint provided"), 400
+
+    result = mongo.db.subscriptions.delete_one({'endpoint': endpoint})
+    if result.deleted_count:
+        return jsonify(success=True)
+    else:
+        return jsonify(success=False, message="Subscription not found"), 404
+
+
+# VIEW: CREATE A NEW ACCOUNT
 @app.route('/create/',methods=['GET','POST'])
 def hash_page(custom=False):
     #key = request.form.get('passkey',None)
@@ -541,7 +667,8 @@ def hash_page(custom=False):
     key = get_rand_key()
     hashed = unique_hash(key)
     form = HashForm()
-    return render_template('create_account.html',hashed=hashed,key=key,form=form,custom=custom)
+    key_stripped = key.replace(' ','').strip()
+    return render_template('create_account.html',hashed=hashed,key=key,form=form,custom=custom, key_stripped=key_stripped)
 
 @app.route('/',methods=['GET'])
 def get_homepage():
@@ -569,6 +696,10 @@ def get_homepage():
     key = current_user.key if current_user.is_authenticated else None
     contact_form = ContactForm(key=key,hidden_key=key)
     return render_template('index.html',error=error_message,contact_form=contact_form,key=key)
+
+@app.route('/privacy')
+def get_privacy_policy():
+    return render_template('privacy.html')
 
 def send_img(string):
     #img = qrcode.make(string.upper(),back_color="white")
@@ -599,6 +730,7 @@ def after_request_callback(response):
     except NameError:
         pass
     return response
+
 def track_visit():
     ip = get_ip()
     timestamp = datetime.datetime.now()
@@ -637,10 +769,10 @@ def get_iota_view(key):
     if account is None:
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
-    elif 'address' not in account:
+    elif 'name' not in account:
         return redirect(f'/{key}/admin')
+    csrf_token = generate_csrf()
     name = account.get('name',None)
-    address = account.get('address',None)
     blurb = account.get('blurb',None)
     failed = request.args.get('failed',False)
     user = User(key=key)
@@ -660,7 +792,6 @@ def get_iota_view(key):
     badges = user.badges
     return render_template(
         'account.html',
-        address=address,
         user=user,
         current_user=current_user,
         name=name,
@@ -668,26 +799,28 @@ def get_iota_view(key):
         key=key,
         failed=failed,
         logged_in=logged_in,
+        vapid_public_key=VAPID_PUBLIC_KEY,
+        notify_text = user.notify_text,
         links=links,
         texts=texts,
         image=image,
         minted=minted,
         badges=badges,
         friends=friends,
-        friend_requests=friend_requests
+        friend_requests=friend_requests,
+        csrf_token=csrf_token
     )
 
 
-    
-
 
 @app.route('/<key>/admin',methods=['GET'])
-def iota_key_admin(key):
+def admin_edit_view(key):
     if not current_user.is_authenticated:
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
     elif current_user.key == key:
         edit_account_form = EditForm(data=current_user.account)
+        error = request.args.get('error',None)
         image_form = ImageForm()
         image = current_user.get_image()
         links = current_user.get_links()
@@ -699,17 +832,21 @@ def iota_key_admin(key):
             image_form=image_form,
             account=current_user.account,
             deleted=request.args.get('deleted',None),
+            vapid_public_key=VAPID_PUBLIC_KEY,
+            notify_text = current_user.notify_text,
             links=links,
             texts=texts,
+            error=error,
             image=image
         )
     else:
         #Possibly add a logout here!
         return redirect(f'/{key}?failed=True')
 
+
 @app.route('/<key>/admin',methods=['POST'])
 @login_required
-def iota_key_admin_edit(key):
+def admin_edit_account(key):
     if not current_user.is_authenticated:
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
@@ -731,32 +868,24 @@ def iota_key_admin_edit(key):
         links = current_user.get_links()
         texts = current_user.get_texts()
         name = request.form.get('name','').strip()
-        address = request.form.get('address','').strip()
+        phone_number = request.form.get('phone_number','').strip()
+        notify_text = request.form.get('notify_text','').strip()
         blurb = request.form.get('blurb','').strip()
         edit_account_form = EditForm(data=current_user.account)
-        # Entered an iota address
-        if address != '' and not is_valid_address(address):
-            #ERROR PATH
-            error_message = "The address given is not a valid IOTA address!"
-            return render_template(
-                'edit_account/edit_account.html',
-                key=key,
-                form=edit_account_form,
-                image_form=image_form,
-                account=current_user.account,
-                error=error_message,
-                links=links,
-                texts=texts,
-                image=image,
-                deleted=request.args.get('deleted',None),
-            )
-            
-        #SUCCESS PATH
+
+
+        # Set the name and subtitle(blurb)
         mongo.db.users.update_one({'key': key},{'$set': {
-            'address': address,
+            'address': '',
             'name': name,
             'blurb': blurb
         }})
+
+        # Set Phone Number if added
+        if phone_number != '':
+            current_user.phone_number = phone_number
+        current_user.notify_text = notify_text
+        
         #Return to edit page if they uploaded and image of edit is false
         #If edit is  True then the person is still editing their page.
         if return_to_edit:
@@ -768,6 +897,8 @@ def iota_key_admin_edit(key):
                 account=current_user.account,
                 error=error_message,
                 notify="Saved!",
+                vapid_public_key=VAPID_PUBLIC_KEY,
+                notify_text = current_user.notify_text,
                 links=links,
                 texts=texts,
                 image=image,
@@ -881,7 +1012,80 @@ def toggle_badge(key):
     elif current_user.key == key:
         current_user.toggle_badge()
     return redirect(f'/{key}')
-        
+
+@app.route('/<key>/admin/notifications')
+@login_required
+def toggle_notification(key):
+    if not current_user.is_authenticated:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=False)
+    elif current_user.key == key:
+        current_user.toggle_notification()
+    return redirect(f'/{key}/admin')
+
+
+@app.route('/<key>/admin/make/public')
+@login_required
+def toggle_public(key):
+    if not current_user.is_authenticated:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=False)
+    elif current_user.key == key:
+        response = current_user.toggle_public()
+        if response == False:
+            return redirect(f'/{key}/admin?error="Public Issue"')
+    return redirect(f'/{key}')
+
+
+# METHOD: TWILIO NOTIFICATION SYSTEM
+
+@app.route('/<key>/notify', methods=['POST'])
+def send_notification(key):
+    account = mongo.db.users.find_one({'key': key})
+    if account is None:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=False)
+    elif 'name' not in account:
+        return redirect(f'/{key}/admin')
+
+    payload = request.get_json(silent=True)        # ⇢ None if not JSON
+    if payload and 'message' in payload:           # JSON caller
+        message_body = payload['message']
+    else:                                          # <form> caller
+        message_body = request.form.get('notify_text', '').strip()
+
+    if not message_body:
+        return jsonify(error='No message supplied'), 400
+
+    subs = mongo.db.subscriptions.find({'key': key})
+    sent = 0
+    for s in subs:
+        info = {
+            "endpoint": s['endpoint'],
+            "keys": {
+                "auth":   s['keys']['auth'],
+                "p256dh": s['keys']['p256dh']
+            }
+        }
+        try:
+            webpush(
+                subscription_info=info,
+                data=message_body,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims=VAPID_CLAIMS
+            )
+            sent += 1
+        except WebPushException as e:
+            app.logger.warning(f"Push failed for {s['endpoint']}: {e}")
+
+    # HTML form expects a page → redirect / flash, JS wants JSON
+    if request.is_json:
+        total = mongo.db.subscriptions.estimated_document_count()
+        return jsonify(sent=sent, total=total)   # JS caller
+    else:
+        flash(f"Sent to {sent} subscribers", "success") # Flask-Flash example
+        return redirect(request.referrer or f'/{key}?error="Notified!"')
+
 
 #LOGIN TO PROFILE
 def complete_login(key,passkey,view=False):
@@ -897,8 +1101,8 @@ def complete_login(key,passkey,view=False):
         return render_template('login.html',key=key,form=form,failed=True,hashed=hashed_pass[:len(key)])
     
 @app.route('/<key>/p/<passkey>',methods=['GET'])
-def auto_login(key,passkey,view=True):
-    return complete_login(key,passkey)
+def auto_login(key,passkey):
+    return complete_login(key,passkey,view=True)
 
 @app.route('/<key>',methods=['POST'])
 def create_iota_account(key):
@@ -1037,13 +1241,14 @@ def contact_us_email():
             return {'error': 'invalid request'}
         else:
             return redirect('/?error=email_invalid')
-
+"""
 @app.route('/balance/<address>')
 def get_balance(address: str):
     is_valid = is_valid_address(address)
     if not is_valid:
         return {'error': 'Not a valid address', 'address': address, 'valid': is_valid, 'valid_type': type(is_valid)}
     return requests.get(f"https://iota.applesauce.chat/balance/{address}").text
+"""
 
 if __name__=="__main__":
     app.run(host='localhost',port='8099',debug=True)

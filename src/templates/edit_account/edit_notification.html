@@ -1,0 +1,60 @@
+<div class="card block">
+  <header class="card-header">
+    <p class="card-header-title">
+      <span>Browser&nbsp;</span>
+      <span>
+	{% if account.notification %}
+	Notifications are Enabled
+	{% else %}
+	Notifications are Disabled
+	{% endif %}
+      </span>
+    </p>
+    <script src="/static/js/jquery.js"></script>
+  </header>
+  <div class="card-content">
+    <script>
+      const VAPID_PUBLIC_KEY = "{{ vapid_public_key }}";
+      const SERVICE_KEY = "{{ key }}";
+    </script>    
+    <!--
+	<div class="field">
+	  {{ form.phone_number.label(class_="label")}} {{form.phone_number(size=20,class_="input")}}
+	</div>
+	-->
+
+	<article class="message">
+	  <div class="message-header">
+	    <p>Subscription Status</p>
+	  </div>
+	  <div class="message-body">
+	    <span id="sub-status"></span>
+	  </div>
+	</article>
+	<article class="message">
+	  <div class="message-header">
+	    <p>Notification Status</p>
+	  </div>
+	  <div class="message-body">
+	    <span id="notification-status"></span>
+	  </div>
+	</article>
+	<div class="field">
+	  {{ form.notify_text.label(class_="label")}} {{form.notify_text(size=20,class_="input")}}
+	  <p>This is the default text for the notification.</p>
+	</div>
+  </div>
+  <footer class="card-footer">
+    <button type='submit' class="card-footer-item button is-success is-light" name='edit' vannlue="submit">Save</button>
+    <a href="/{{key}}/admin/notifications">
+      {% if not account.notification %}
+      <button type="button" id="btn-enable" class="button is-success">Enable Notifications</button>
+      {% else %}
+      <button type="button" id="btn-disable" class="button is-error">Disable Notifications</button>
+      {% endif %}
+    </a>
+  <button type="button" id="btn-subscribe" class="card-footer-item button is-link" href="/{{key}}">Subscribe</button>
+  <button type="button" id="btn-unsubscribe" class="card-footer-item button is-link" href="/{{key}}">Unsubscribe</button>
+  <button type="button" id="btn-notify" class="card-footer-item button is-info" href="/{{key}}">Test-Notify</button>
+</footer>
+</div>

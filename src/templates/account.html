@@ -30,14 +30,11 @@
     {% endif %}
     
     {% include 'account/account_image.html' %}
-
+    {% include 'account/account_notify.html' %}
     {% include 'account/account_texts.html' %}
     {% include 'account/account_links.html' %}
     {% include 'account/account_badges.html' %}
 
-    {% if address != '' %}
-    {% include 'account/iota_address_block.html' %}
-    {% endif %}
     <div class="block"></div>
     {% include 'account/footer.html' %}
   </div>

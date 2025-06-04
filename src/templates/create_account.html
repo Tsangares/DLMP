@@ -35,14 +35,14 @@
 	  </div>
 	  <div class="field">
 	    <label class="label">Website Endpoint</label>
-	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="{{url}}/{{hashed}}">
+	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="{{url}}{{hashed}}">
 	      <i class="far fa-copy"></i>&nbsp;{{domain}}/{{hashed}}
 	    </button>
 	  </div>
 	  <div class="field">
-	    <label class="label">Short Endpoint</label>
-	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="tngl.at/{{hashed}}">
-	      <i class="far fa-copy"></i>&nbsp;tngl.at/{{hashed}}
+	    <label class="label">Auto Endpoint</label>
+	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="{{url}}{{hashed}}/p/{{key_stripped}}">
+	      <i class="far fa-copy"></i>&nbsp;{{domain}}/{{hashed}}/p/{{key_stripped}}
 	    </button>
 	  </div>
 	</div>
@@ -52,8 +52,8 @@
 	  </div>
 	  <div class="column is-narrow has-text-centered">
 	    <label class="label">This is a qr code of the long url</label>
-	    <a target="_blank" href="{{url}}/{{hashed}}"><button class="button is-link is-light">{{domain}}/{{hashed}}</button></a>
-	    <a target="_blank" href="/qr?q={{url}}/{{hashed}}"><button class="button is-link is-light">Link to qr code</button></a>
+	    <a target="_blank" href="{{url}}{{hashed}}"><button class="button is-link is-light">{{domain}}/{{hashed}}</button></a>
+	    <a target="_blank" href="/qr?q={{url}}{{hashed}}"><button class="button is-link is-light">Link to qr code</button></a>
 	    <p>Use this link to redirect traffic to your services</p>
 	  </div>
 	</div>	
