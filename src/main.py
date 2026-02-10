@@ -200,6 +200,7 @@ class User(UserMixin):
         self.last_refresh = time.time()
         self._id = user['_id']
         self.name = user.get('name','')
+        self.blurb = user.get('blurb','')
         self.account = user
         self.key = user['key']
         self._phone_number = user.get('phone_number',None)
@@ -429,6 +430,7 @@ class User(UserMixin):
                 'ip_created': ip,
                 'time_created': timestamp
             })
+        
         login_user(User(key=key))
     
     
@@ -489,6 +491,8 @@ class User(UserMixin):
             if len(images)==0:
                 return None
             image = images[0]
+            
+        if image is None: return None
         
         image['data'] = image['data'].decode('utf-8')
         return image
@@ -522,6 +526,8 @@ class User(UserMixin):
             self.account['badge_enabled'] = True
         return self.account['badge_enabled']
 
+    def make_public(self):
+        return self.toggle_public()
     def toggle_public(self):
         self.refresh()
         #logging.error(f"TESTINDG: {self.name} {self.name is not None}; {self.name.strip()} {self.name.strip() != ''}")
@@ -815,33 +821,37 @@ def get_iota_view(key):
 
 @app.route('/<key>/admin',methods=['GET'])
 def admin_edit_view(key):
-    if not current_user.is_authenticated:
-        form = LoginForm()
-        return render_template('login.html',key=key,form=form,failed=False)
-    elif current_user.key == key:
-        edit_account_form = EditForm(data=current_user.account)
-        error = request.args.get('error',None)
-        image_form = ImageForm()
-        image = current_user.get_image()
-        links = current_user.get_links()
-        texts = current_user.get_texts()
-        return render_template(
-            'edit_account/edit_account.html',
-            key=key,
-            form=edit_account_form,
-            image_form=image_form,
-            account=current_user.account,
-            deleted=request.args.get('deleted',None),
-            vapid_public_key=VAPID_PUBLIC_KEY,
-            notify_text = current_user.notify_text,
-            links=links,
-            texts=texts,
-            error=error,
-            image=image
-        )
+    if current_user.is_authenticated and current_user.key == key:
+        user = current_user
     else:
-        #Possibly add a logout here!
-        return redirect(f'/{key}?failed=True')
+        account = mongo.db.users.find_one({'key': key})
+        if account and account.get('public', False):
+            user = User(key=key)
+        elif not current_user.is_authenticated:
+            form = LoginForm()
+            return render_template('login.html',key=key,form=form,failed=False)
+        else:
+            return redirect(f'/{key}?failed=True')
+    edit_account_form = EditForm(data=user.account)
+    error = request.args.get('error',None)
+    image_form = ImageForm()
+    image = user.get_image()
+    links = user.get_links()
+    texts = user.get_texts()
+    return render_template(
+        'edit_account/edit_account.html',
+        key=key,
+        form=edit_account_form,
+        image_form=image_form,
+        account=user.account,
+        deleted=request.args.get('deleted',None),
+        vapid_public_key=VAPID_PUBLIC_KEY,
+        notify_text = user.notify_text,
+        links=links,
+        texts=texts,
+        error=error,
+        image=image
+    )
 
 
 @app.route('/<key>/admin',methods=['POST'])
@@ -867,19 +877,20 @@ def admin_edit_account(key):
         image_form = ImageForm()
         links = current_user.get_links()
         texts = current_user.get_texts()
-        name = request.form.get('name','').strip()
+        name = request.form.get('name',current_user.name).strip()
         phone_number = request.form.get('phone_number','').strip()
         notify_text = request.form.get('notify_text','').strip()
-        blurb = request.form.get('blurb','').strip()
+        blurb = request.form.get('blurb',current_user.blurb).strip()
         edit_account_form = EditForm(data=current_user.account)
 
 
         # Set the name and subtitle(blurb)
-        mongo.db.users.update_one({'key': key},{'$set': {
-            'address': '',
-            'name': name,
-            'blurb': blurb
-        }})
+        if name != '':
+            mongo.db.users.update_one({'key': key},{'$set': {
+                'address': '',
+                'name': name,
+                'blurb': blurb
+            }})
 
         # Set Phone Number if added
         if phone_number != '':
@@ -1023,17 +1034,26 @@ def toggle_notification(key):
         current_user.toggle_notification()
     return redirect(f'/{key}/admin')
 
-
-@app.route('/<key>/admin/make/public')
+@app.route('/<key>/admin/make/public/verify')
 @login_required
-def toggle_public(key):
+def make_page_public_verify(key):
     if not current_user.is_authenticated:
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
     elif current_user.key == key:
-        response = current_user.toggle_public()
+        return render_template('edit_account/make_public_verify.html',key=key)
+@app.route('/<key>/admin/make/public')
+@login_required
+def make_page_public(key):
+    if not current_user.is_authenticated:
+        form = LoginForm()
+        return render_template('login.html',key=key,form=form,failed=False)
+    elif current_user.key == key:
+        response = current_user.make_public()
         if response == False:
-            return redirect(f'/{key}/admin?error="Public Issue"')
+            return redirect(f'/{key}/admin?error=Public Issue')
+        else:
+            return redirect(f'/{key}/admin?error=Made Public')
     return redirect(f'/{key}')
 
 
@@ -1088,10 +1108,13 @@ def send_notification(key):
 
 
 #LOGIN TO PROFILE
-def complete_login(key,passkey,view=False):
+def complete_login(key,passkey,view=False,make_public=False):
     hashed_pass = unique_hash(passkey)
     if hashed_pass[:len(key)].upper() == key.upper():
         User.create_user(key)
+        
+        if make_public:
+            current_user.make_public()
         if view:
             return redirect(f'/{key}')
         else:
@@ -1101,8 +1124,14 @@ def complete_login(key,passkey,view=False):
         return render_template('login.html',key=key,form=form,failed=True,hashed=hashed_pass[:len(key)])
     
 @app.route('/<key>/p/<passkey>',methods=['GET'])
-def auto_login(key,passkey):
-    return complete_login(key,passkey,view=True)
+def auto_login_endpoint_public(key,passkey):
+    return complete_login(key,passkey,view=True, make_public=True)
+
+    
+@app.route('/<key>/q/<passkey>',methods=['GET'])
+def auto_login_endpoint_private(key,passkey):
+    return complete_login(key,passkey,view=True, make_public=False)
+
 
 @app.route('/<key>',methods=['POST'])
 def create_iota_account(key):
@@ -1197,7 +1226,8 @@ def mk_page():
     return make_custom_page(3,4)
 @app.route('/about',methods=['GET'])
 def get_about_us():
-    return render_template('about.html')
+    contact_form = ContactForm()
+    return render_template('about.html', contact_form=contact_form)
 
 @app.route('/<key>/connect',methods=['GET'])
 @login_required

@@ -40,7 +40,13 @@
 	    </button>
 	  </div>
 	  <div class="field">
-	    <label class="label">Auto Endpoint</label>
+	    <label class="label">Auto Endpoint - Private</label>
+	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="{{url}}{{hashed}}/q/{{key_stripped}}">
+	      <i class="far fa-copy"></i>&nbsp;{{domain}}/{{hashed}}/q/{{key_stripped}}
+	    </button>
+	  </div>
+	  <div class="field">
+	    <label class="label">Auto Endpoint - Public</label>
 	    <button class="button is-fullwidth left clip" onclick="copy(this)" value="{{url}}{{hashed}}/p/{{key_stripped}}">
 	      <i class="far fa-copy"></i>&nbsp;{{domain}}/{{hashed}}/p/{{key_stripped}}
 	    </button>
@@ -68,6 +74,7 @@
 	    <p>Use this link to redirect traffic to your services</p>
 	  </div>
 	</div>
+      <a href="/{{key}}/admin/make/public"><span class="button is-link">Make Page Public (Permanent!)</span></a>
 
 	
       </article>

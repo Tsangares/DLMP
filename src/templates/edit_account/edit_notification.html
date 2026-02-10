@@ -43,6 +43,18 @@
 	  {{ form.notify_text.label(class_="label")}} {{form.notify_text(size=20,class_="input")}}
 	  <p>This is the default text for the notification.</p>
 	</div>
+	<div class="columns is-centered">
+		<div class="column">
+			<button type="button" id="btn-notify" class="button is-info" href="/{{key}}">Test-Notify</button>
+		</div>
+		<div class="column">
+		  <button type="button" id="btn-subscribe" class="card-footer-item button is-link" href="/{{key}}">Subscribe</button>
+		</div>
+		<div class="column">
+			<button type="button" id="btn-unsubscribe" class="card-footer-item button is-link" href="/{{key}}">Unsubscribe</button>
+		</div>
+	</div>
+
   </div>
   <footer class="card-footer">
     <button type='submit' class="card-footer-item button is-success is-light" name='edit' vannlue="submit">Save</button>
@@ -53,8 +65,5 @@
       <button type="button" id="btn-disable" class="button is-error">Disable Notifications</button>
       {% endif %}
     </a>
-  <button type="button" id="btn-subscribe" class="card-footer-item button is-link" href="/{{key}}">Subscribe</button>
-  <button type="button" id="btn-unsubscribe" class="card-footer-item button is-link" href="/{{key}}">Unsubscribe</button>
-  <button type="button" id="btn-notify" class="card-footer-item button is-info" href="/{{key}}">Test-Notify</button>
 </footer>
 </div>
