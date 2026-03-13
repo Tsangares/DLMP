@@ -1,7 +1,7 @@
 
 # Deep Link Micro Pages
 
-A QR-code-based personal landing page platform for physical merchandise. Each product gets a unique identity — a QR code that links to a customizable micro page where customers can add links, text, images, and connect with other owners. Built for a family-owned screen printing shop in Los Feliz, CA. Demo at [YQue.net](https://yque.net).
+An IoT micro landing page platform that embeds digital identities in physical products. Each item gets a unique QR code linking to a customizable micro page where customers can add links, text, images, and connect with other owners. Built for a family-owned screen printing shop in Los Feliz, CA. Demo at [YQue.net](https://yque.net).
 
 <p align="center">
   <img width="400" src="https://github.com/Tsangares/DLMP/blob/master/static/img/dlmp_example.jpg" alt="DLMP Example">
