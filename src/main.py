@@ -190,7 +190,11 @@ class Badge:
         self.renoun = mongo.db.link.count_documents({'parent_key': self.key})
         self.name = badge['name']
         self.created = badge['time_created']
-        self.influence = int((time.time() - badge['time_created'].timestamp())/10)
+        tc = badge['time_created']
+        if isinstance(tc, str):
+            from datetime import datetime
+            tc = datetime.fromisoformat(tc)
+        self.influence = int((time.time() - tc.timestamp())/10)
     def set_image(self,image):
         self.image = image
         
@@ -479,7 +483,7 @@ class User(UserMixin):
         images.reverse()
         if render:
             for image in images:
-                image['data'] = image['data'].decode('utf-8')
+                image['data'] = image['data'].decode('utf-8') if isinstance(image['data'], bytes) else image['data']
             return images
         return images
     
@@ -494,7 +498,7 @@ class User(UserMixin):
             
         if image is None: return None
         
-        image['data'] = image['data'].decode('utf-8')
+        image['data'] = image['data'].decode('utf-8') if isinstance(image['data'], bytes) else image['data']
         return image
     
     def set_image(self,image_id):
