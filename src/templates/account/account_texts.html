@@ -1,0 +1,19 @@
+{% if texts | length > 0 %}
+<div class="card block">
+  <header class="card-header">
+    <p class="card-header-title">Bulletin</p>
+  </header>
+  <div class="card-content">
+    <div class="content">
+      {% for text in texts %}
+      <div class="field">
+	<label class="label">{{text.title}}</label>
+	<p>{{text.text}}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <footer class="card-footer">
+  </footer>
+</div>
+{% endif %}

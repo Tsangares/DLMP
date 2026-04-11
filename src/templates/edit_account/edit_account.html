@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	{% include 'header.html' %}
+	<title>Customize</title>
+	<link rel="stylesheet" href="/static/css/edit_account.css">
+</head>
+
+<body>
+	<form action='/{{key}}/admin' method="POST" enctype="multipart/form-data">
+		{{ form.hidden_tag() }}
+		<div class="container">
+			<!-- Title -->
+			<div class="box">
+				<div class="title">
+					<span>Edit Account</span>
+					<div class="block" style="float: right">
+						<a href="/{{key}}"><button type="button" class="button is-success">View Page</button></a>
+					</div>
+				</div>
+				<div class="sub-title">Customize the landing page for users.</div>
+			</div>
+			<div class="block">
+				{% if error %}
+				<div class="notification is-danger">{{error}}</div>
+				{% elif notify%}
+				<div class="notification is-info">{{notify}}</div>
+				{%endif%}
+			</div>
+
+			<!-- Name Field -->
+			<div class="card block">
+				<div class="card-content">
+					<div class="field">
+						{{ form.name.label(class_="label")}}
+						{% if account.public and not (current_user.is_authenticated and current_user.key == key) %}
+						{{form.name(size=20,class_="input", disabled=true)}}
+						{% else %}
+						{{form.name(size=20,class_="input")}}
+						{% endif %}
+					</div>
+					<div class="field">
+						{{ form.blurb.label(class_="label")}}
+						{% if account.public and not (current_user.is_authenticated and current_user.key == key) %}
+						{{form.blurb(size=20,class_="input", disabled=true)}}
+						{% else %}
+						{{form.blurb(size=20,class_="input")}}
+						{% endif %}
+					</div>
+				</div>
+				{% if not account.public or (current_user.is_authenticated and current_user.key == key) %}
+				<footer class="card-footer">
+					<button type='submit' class="card-footer-item button is-success" name='login' value="submit">Save &amp; Exit</button>
+					<button type='submit' class="card-footer-item button is-success is-light" name='edit'
+						value="submit">Save</button>
+				</footer>
+				{% endif %}
+			</div>
+
+			<!-- Other Fields -->
+			{% include 'edit_account/add_image.html' %}
+			{% include 'edit_account/content_links.html' %}
+			{% include 'edit_account/content_text.html' %}
+
+			{% if not account.public or (current_user.is_authenticated and current_user.key == key) %}
+			{% include 'edit_account/edit_notification.html' %}
+			{% include 'edit_account/add_redirect.html' %}
+			{% endif %}
+
+	</form>
+	<footer class="footer">
+		<div class="content has-text-centered">
+			<div class="columns is-centered">
+				<div class="column is-narrow">
+					<a href="/{{key}}"><button type="button" class="button is-success">View Page</button></a>
+				</div>
+
+				<div class="column is-narrow">
+					<a href="/{{key}}/admin/badge">
+						<span class="button is-link">{% if account.badge_enabled %}Disable
+							Badges{% else
+							%}Enable Badges{% endif %}</span>
+					</a>
+				</div>
+
+				{% if account.public is not defined or not account.public %}
+				<div class="column is-narrow">
+					<a href="/{{key}}/admin/make/public/verify"><span class="button is-link">Make Page Public</span></a>
+				</div>
+				{% endif %}
+			</div>
+		</div>
+		<span>{{account.notification}}</span>
+	</footer>
+</body>
+<footer>
+	<script>
+		const notifications = {{ (account.notification_enabled | default (False)) | tojson}};
+	</script>
+
+	<script src="/static/js/account_edit.js"></script>
+</footer>
+
+</html>

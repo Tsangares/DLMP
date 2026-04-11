@@ -1,0 +1,23 @@
+{% extends "edit_account/content.html" %}
+{% block title %}Text{% endblock %}
+{% block object %}Text{% endblock %}
+{% block endpoint %}add_text{% endblock %}
+{% block create_text %}Add Text{% endblock %}
+{% block data %}{{content}}{% endblock %}
+{% block extra_columns %}{% endblock %}
+{% block table %}
+{% for text in texts %}
+<tr>
+  <td>{{text.title}}</td>
+  <td>{{text.text}}</td>
+  <td><a class="is-danger" href="/{{key}}/admin/del?q={{text._id}}&type=text"><class="button"><i class="fas fa-times"></i></a></td>
+</tr>
+{% endfor %}
+{% endblock %}
+{% block notify %}
+{% if deleted == "text" %}
+<div class="notification is-success">
+  Deleted text!
+</div>
+{% endif %}
+{% endblock %}

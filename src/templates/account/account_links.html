@@ -1,0 +1,30 @@
+{% if links | length > 0 %}
+<div class="card block">
+  <header class="card-header">
+    <p class="card-header-title">Links</p>
+  </header>
+  <div class="card-content">
+    <div class="content">
+      {% for link in links %}
+      <div class="block">
+	{% if link.action == "open" %}
+	<a target="_blank" href="{{link.link}}">
+	  <button  class="word-wrap button is-link is-light is-fullwidth">
+	    {{link.title}}
+	    &nbsp;<sup><sup><i class="fas fa-external-link-alt"></i></sup></sup>
+	  </button>
+	</a>
+	{% elif link.action == "copy" %}
+	<button class="word-wrap button is-fullwidth left clip" onclick="copy(this)" value="{{link.link}}">
+	  <i class="far fa-copy"></i>&nbsp;
+	  {{link.title}}
+	</button>
+	{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <footer class="card-footer">
+  </footer>
+</div>
+{% endif %}

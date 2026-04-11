@@ -1,0 +1,10 @@
+{% if image %}
+<div id="image-container">
+    <div class="card block">
+        <figure class="image card-image">
+            <img id="image-preview" src="data:image/{{image.filetype}};base64,{{image.data}}">
+        </figure>
+    </div>
+</div>
+<div class="block"></div>
+{% endif %}

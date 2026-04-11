@@ -1,0 +1,26 @@
+{% if user.account.notification %}
+<div class="card block">
+  <header class="card-header">
+    <p class="card-header-title">Notification</p>
+  </header>
+  <div class="card-content">
+    <div class="content">
+      <form action="/{{key}}/notify" method="POST">
+	<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+	<div class="field">
+	  <label class="label">Notification Text</label>
+	  <input class='input' type="text", name="notify_text" value="{{user.account.notify_text}}"></input>
+	</div>
+	<div class="field">	
+	  <label class="label">Send Notification</label>
+	  <button class="button">
+            <i class="fas fa-bell"></i>&nbsp;Notify
+          </button>
+	</div>
+    </div>
+    </form>
+  </div>
+  <footer class="card-footer">
+  </footer>
+</div>
+{% endif %}

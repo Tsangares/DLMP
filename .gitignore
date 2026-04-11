@@ -1,0 +1,13 @@
+cred.json
+.access.json
+.mongo*
+*~
+__pycache__
+emails
+.env
+dlmp_cred
+emails/
+src/tmp_static/
+*vapid*
+\#**\#
+CLAUDE.md

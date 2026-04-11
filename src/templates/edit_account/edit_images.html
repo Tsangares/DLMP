@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    {% include 'header.html' %}
+    <title>Customize</title>
+    <link rel="stylesheet" href="/static/css/edit_images.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Title -->
+        <div class="box">
+            <div class="title">
+                <span>Images</span>
+                <div class="block" style="float: right">
+                    <a class="button is-success" href="/{{key}}/admin">Back</a>
+                </div>
+            </div>
+            <div class="sub-title">View and edit all your images</div>
+        </div>
+        <div class="columns is-multiline is-centered is-justify-content-space-evenly">
+            {% for image in images %}
+            <div class="column is-narrow">
+                <div class="card">
+                    <figure style="width: {{image.width}}px; height: {{image.height}}px" class="image card-image">
+                        <img src="data:image/{{image.filetype}};base64,{{image.data}}">
+                    </figure>
+                    <div class="card-content">
+                        <label class="label">Date</label><time datetime="{{image.time_created}}">{{image.time_created|strftime}}</time>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="/{{key}}/admin/set_image/{{image._id}}" class="card-footer-item">Set as Image</a>
+                        <a href="/{{key}}/admin/del_image/{{image._id}}" class="card-footer-item">Delete</a>
+                    </footer>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+<footer>
+    <script src="/static/js/edit_images.js"></script>
+</footer>
+</html>
