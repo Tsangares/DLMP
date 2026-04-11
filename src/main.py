@@ -478,15 +478,30 @@ class User(UserMixin):
         })
         self.set_image(image.inserted_id)
         
+    @staticmethod
+    def _decode_image_data(data):
+        """Ensure image data is single base64-encoded text for use in data URIs."""
+        if isinstance(data, bytes):
+            data = data.decode('utf-8')
+        # Check for double base64 encoding (migration artifact)
+        try:
+            decoded = base64.b64decode(data)
+            if decoded[:4] == b'/9j/' or decoded[:4] == b'\x89PNG':
+                # Still base64 text after one decode — was double-encoded
+                return decoded.decode('utf-8')
+        except Exception:
+            pass
+        return data
+
     def get_images(self,render=True):
         images =  [c for c in mongo.db.images.find({'key': self._id})]
         images.reverse()
         if render:
             for image in images:
-                image['data'] = image['data'].decode('utf-8') if isinstance(image['data'], bytes) else image['data']
+                image['data'] = self._decode_image_data(image['data'])
             return images
         return images
-    
+
     def get_image(self):
         if 'display_image' in self.account:
             image = mongo.db.images.find_one({'key': self._id,'_id': self.account['display_image']})
@@ -495,10 +510,10 @@ class User(UserMixin):
             if len(images)==0:
                 return None
             image = images[0]
-            
+
         if image is None: return None
-        
-        image['data'] = image['data'].decode('utf-8') if isinstance(image['data'], bytes) else image['data']
+
+        image['data'] = self._decode_image_data(image['data'])
         return image
     
     def set_image(self,image_id):
