@@ -1072,13 +1072,17 @@ def make_page_public(key):
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
     elif current_user.key == key:
-        response = current_user.make_public()
-        if response == False:
-            return redirect(f'/{key}/admin?error=Public Issue')
-        elif current_user.account.get('public', False):
+        was_public = current_user.account.get('public', False)
+        current_user.make_public()  # toggles public <-> private
+        now_public = current_user.account.get('public', False)
+        if now_public:
             return redirect(f'/{key}/admin?error=Made Public')
-        else:
+        elif was_public:
+            # successfully toggled public -> private (not a failure)
             return redirect(f'/{key}/admin?error=Made Private')
+        else:
+            # tried to go public but couldn't — a title is required first
+            return redirect(f'/{key}/admin?error=Add a title first to make this page public')
     return redirect(f'/{key}')
 
 
