@@ -532,16 +532,24 @@ class User(UserMixin):
 
     def make_public(self):
         return self.toggle_public()
+    def set_public(self, value=True):
+        """Idempotently set the public flag. Used by the /p/ public auto-login
+        link so repeat visits never flip a public page back to private."""
+        self.refresh()
+        if value and (self.name is None or self.name.strip() == ''):
+            return False
+        mongo.db.users.update_one({'key': self.key}, {'$set': {'public': bool(value)}})
+        self.account['public'] = bool(value)
+        return self.account['public']
     def toggle_public(self):
         self.refresh()
-        #logging.error(f"TESTINDG: {self.name} {self.name is not None}; {self.name.strip()} {self.name.strip() != ''}")
-        if self.name is None or self.name.strip() == '':
-            return False
-        mongo.db.users.update_one({'key': self.key},{'$set': {
-            'public': True
-        }})
-        self.account['public'] = True
-        return self.account['public']        
+        if not self.account.get('public', False):
+            if self.name is None or self.name.strip() == '':
+                return False
+        new_val = not self.account.get('public', False)
+        mongo.db.users.update_one({'key': self.key}, {'$set': {'public': new_val}})
+        self.account['public'] = new_val
+        return self.account['public']
         
     def toggle_notification(self):
         self.refresh()
@@ -823,19 +831,29 @@ def get_iota_view(key):
 
 
 
+def resolve_admin_user(key):
+    """The User to act as for admin actions.
+
+    Returns the logged-in owner, or an anonymous ``User(key=key)`` when the page
+    is flagged public (public pages are editable without the passkey). ``None``
+    if neither applies.
+    """
+    if current_user.is_authenticated and current_user.key == key:
+        return current_user
+    account = mongo.db.users.find_one({'key': key})
+    if account and account.get('public', False):
+        return User(key=key)
+    return None
+
+
 @app.route('/<key>/admin',methods=['GET'])
 def admin_edit_view(key):
-    if current_user.is_authenticated and current_user.key == key:
-        user = current_user
-    else:
-        account = mongo.db.users.find_one({'key': key})
-        if account and account.get('public', False):
-            user = User(key=key)
-        elif not current_user.is_authenticated:
+    user = resolve_admin_user(key)
+    if user is None:
+        if not current_user.is_authenticated:
             form = LoginForm()
             return render_template('login.html',key=key,form=form,failed=False)
-        else:
-            return redirect(f'/{key}?failed=True')
+        return redirect(f'/{key}?failed=True')
     edit_account_form = EditForm(data=user.account)
     error = request.args.get('error',None)
     image_form = ImageForm()
@@ -859,110 +877,108 @@ def admin_edit_view(key):
 
 
 @app.route('/<key>/admin',methods=['POST'])
-@login_required
 def admin_edit_account(key):
-    if not current_user.is_authenticated:
-        form = LoginForm()
-        return render_template('login.html',key=key,form=form,failed=False)
-    elif current_user.key == key:
-        return_to_edit = request.form.get('edit',False)
-        error_message=None
-        new_image = request.files['image']
-        if new_image.filename == "": new_image=None
-        if new_image is not None:
-            return_to_edit=True
-            current_user.upload_image(new_image)
-        if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
-            return_to_edit=True
-            successful_redirect = current_user.set_redirect()
-            if not successful_redirect:
-                error_message = "Your redirect link was malformed."
-        image = current_user.get_image()
-        image_form = ImageForm()
-        links = current_user.get_links()
-        texts = current_user.get_texts()
-        name = request.form.get('name',current_user.name).strip()
-        phone_number = request.form.get('phone_number','').strip()
-        notify_text = request.form.get('notify_text','').strip()
-        blurb = request.form.get('blurb',current_user.blurb).strip()
-        edit_account_form = EditForm(data=current_user.account)
+    user = resolve_admin_user(key)
+    if user is None:
+        if not current_user.is_authenticated:
+            form = LoginForm()
+            return render_template('login.html',key=key,form=form,failed=False)
+        return redirect(f'/{key}')
+    return_to_edit = request.form.get('edit',False)
+    error_message=None
+    new_image = request.files['image']
+    if new_image.filename == "": new_image=None
+    if new_image is not None:
+        return_to_edit=True
+        user.upload_image(new_image)
+    if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
+        return_to_edit=True
+        successful_redirect = user.set_redirect()
+        if not successful_redirect:
+            error_message = "Your redirect link was malformed."
+    image = user.get_image()
+    image_form = ImageForm()
+    links = user.get_links()
+    texts = user.get_texts()
+    name = request.form.get('name',user.name).strip()
+    phone_number = request.form.get('phone_number','').strip()
+    notify_text = request.form.get('notify_text','').strip()
+    blurb = request.form.get('blurb',user.blurb).strip()
+    edit_account_form = EditForm(data=user.account)
 
 
-        # Set the name and subtitle(blurb)
-        if name != '':
-            mongo.db.users.update_one({'key': key},{'$set': {
-                'address': '',
-                'name': name,
-                'blurb': blurb
-            }})
+    # Set the name and subtitle(blurb)
+    if name != '':
+        mongo.db.users.update_one({'key': key},{'$set': {
+            'address': '',
+            'name': name,
+            'blurb': blurb
+        }})
 
-        # Set Phone Number if added
-        if phone_number != '':
-            current_user.phone_number = phone_number
-        current_user.notify_text = notify_text
-        
-        #Return to edit page if they uploaded and image of edit is false
-        #If edit is  True then the person is still editing their page.
-        if return_to_edit:
-            return render_template(
-                'edit_account/edit_account.html',
-                key=key,
-                form=edit_account_form,
-                image_form=image_form,
-                account=current_user.account,
-                error=error_message,
-                notify="Saved!",
-                vapid_public_key=VAPID_PUBLIC_KEY,
-                notify_text = current_user.notify_text,
-                links=links,
-                texts=texts,
-                image=image,
-                deleted=request.args.get('deleted',None),
-            )
-        elif request.form.get('add_link',False):
-            #Return to page because they added a link
-            return redirect(f'/{key}/admin/add/link')
-        elif request.form.get('add_text',False):
-            #Return to page because they added a text blob
-            return redirect(f'/{key}/admin/add/text')
-        else:
-            return redirect(f'/{key}')
+    # Set Phone Number if added
+    if phone_number != '':
+        user.phone_number = phone_number
+    user.notify_text = notify_text
+
+    #Return to edit page if they uploaded and image of edit is false
+    #If edit is  True then the person is still editing their page.
+    if return_to_edit:
+        return render_template(
+            'edit_account/edit_account.html',
+            key=key,
+            form=edit_account_form,
+            image_form=image_form,
+            account=user.account,
+            error=error_message,
+            notify="Saved!",
+            vapid_public_key=VAPID_PUBLIC_KEY,
+            notify_text = user.notify_text,
+            links=links,
+            texts=texts,
+            image=image,
+            deleted=request.args.get('deleted',None),
+        )
+    elif request.form.get('add_link',False):
+        #Return to page because they added a link
+        return redirect(f'/{key}/admin/add/link')
+    elif request.form.get('add_text',False):
+        #Return to page because they added a text blob
+        return redirect(f'/{key}/admin/add/text')
     else:
-        #Possibly add a logout here!
         return redirect(f'/{key}')
     
 #IMAGES
 @app.route('/<key>/admin/images/',methods=['GET','POST'])
-@login_required
 def get_account_images(key):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
-    images = current_user.get_images()
-    return render_template('edit_account/edit_images.html',key=key,account=current_user.account,images=images)
+    images = user.get_images()
+    return render_template('edit_account/edit_images.html',key=key,account=user.account,images=images)
 
 @app.route('/<key>/admin/del_image/<image_id>',methods=['GET'])
-@login_required
 def delete_account_image(key,image_id):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
-    current_user.del_image(image_id)
-    images = current_user.get_images()
-    return render_template('edit_account/edit_images.html',key=key,account=current_user.account,images=images)
+    user.del_image(image_id)
+    images = user.get_images()
+    return render_template('edit_account/edit_images.html',key=key,account=user.account,images=images)
 
 
 @app.route('/<key>/admin/set_image/<image_id>',methods=['GET'])
-@login_required
 def set_account_image(key,image_id):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
-    current_user.set_image(image_id)
+    user.set_image(image_id)
     return redirect(f'/{key}')
 
 
 #LINK
 @app.route('/<key>/admin/add/link',methods=['GET'])
 def add_link_view(key):
-    if not current_user.is_authenticated or current_user.key != key:
+    if resolve_admin_user(key) is None:
         return redirect(f'/{key}')
     form = LinkForm(key=key)
     return render_template('edit_account/add_links.html',key=key,form=form)
@@ -972,42 +988,45 @@ def clean_link(string):
 
 @app.route('/<key>/admin/add/link',methods=['POST'])
 def add_link(key):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
     content = {
         'title': request.form.get('title',None),
         'link': clean_link(request.form.get('link',None)),
         'action': request.form.get('action',None),
     }
-    current_user.add_link(content)
+    user.add_link(content)
     return redirect(f'/{key}/admin')
 
 #TEXT
 @app.route('/<key>/admin/add/text',methods=['GET'])
 def add_text_view(key):
-    if not current_user.is_authenticated or current_user.key != key:
+    if resolve_admin_user(key) is None:
         return redirect(f'/{key}')
     form = TextForm(key=key)
     return render_template('edit_account/add_text.html',key=key,form=form)
 
 @app.route('/<key>/admin/add/text',methods=['POST'])
 def add_text(key):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
     content = {
         'title': request.form.get('title',None),
         'text': request.form.get('text',None),
     }
-    current_user.add_text(content)
+    user.add_text(content)
     return redirect(f'/{key}/admin')
 
 @app.route('/<key>/admin/del',methods=['GET'])
 def del_content(key):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
     _id = request.args.get('q',None)
     _type = request.args.get('type',None)
-    current_user.del_content(_id)
+    user.del_content(_id)
     return redirect(f'/{key}/admin?deleted={_type}')
 
 @app.route('/<key>/mint',methods=['GET'])
@@ -1056,8 +1075,10 @@ def make_page_public(key):
         response = current_user.make_public()
         if response == False:
             return redirect(f'/{key}/admin?error=Public Issue')
-        else:
+        elif current_user.account.get('public', False):
             return redirect(f'/{key}/admin?error=Made Public')
+        else:
+            return redirect(f'/{key}/admin?error=Made Private')
     return redirect(f'/{key}')
 
 
@@ -1118,7 +1139,7 @@ def complete_login(key,passkey,view=False,make_public=False):
         User.create_user(key)
         
         if make_public:
-            current_user.make_public()
+            current_user.set_public(True)
         if view:
             return redirect(f'/{key}')
         else:
