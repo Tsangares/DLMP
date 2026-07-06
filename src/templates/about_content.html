@@ -2,12 +2,12 @@
   <div class="column is-half">
     <article class="message">
       <div class="message-header">
-        <p>What is Deep Links Micro Pages?</p>
+        <p>What is a Deep Link Micro Page?</p>
       </div>
       <div class="message-body">
         <ul>
-          <li>Connects physical clothes to a digital webpage.</li>
-          <li>Owner of the clothes, OWNS the webpage</li>
+          <li>It is a small web page tied to a physical product through a QR code.</li>
+          <li>Whoever owns the product owns the page and can edit it.</li>
         </ul>
       </div>
     </article>
@@ -18,22 +18,23 @@
   <div class="column is-full">
     <article class="message">
       <div class="message-header">
-        <p>Why would I use Deep Links Micro Pages?</p>
+        <p>Why would I use it?</p>
       </div>
       <div class="message-body">
-        <p>DLMP extends the purpose of clothing by imbuing them with a digital clone that lives beyond physical
-          restraints; a unique digital life to an otherwise inanimate piece of cloth.</p>
+        <p>It gives a physical product its own web page. Use the page to share links, a bit of text, or a
+          picture with whoever scans the code. The page belongs to the person who has the product, and it can
+          change over time even though the product does not.</p>
       </div>
     </article>
   </div>
   <div class="column is-full">
     <article class="message">
       <div class="message-header">
-        <p>How do I obtain a Digital Clone?</p>
+        <p>How do I get a page?</p>
       </div>
       <div class="message-body">
-        <p>On all DLMP products, you fill find a QR code that leads you to a webpage OWNED by the wearer of the apparel.
-          This QR code is unique for each piece of apparel and links to the digital clone.</p>
+        <p>Every DLMP product has a QR code printed on it. Scan the code and it opens the page for that
+          product. The code is unique to each item, so each item has its own page.</p>
       </div>
     </article>
   </div>
@@ -43,27 +44,27 @@
         <p>How do I edit the webpage?</p>
       </div>
       <div class="message-body">
-        <p>Hidden on the DLMP apparel, you will find a passcode. This passcode is entered your apparel's web-page to
-          authorize your ownership and will allow you to customize the content on the page.</p>
-        <p>To help you navigate to the webpage scan the QR code or enter your url's ID into the <a
-            href='/#nav-panel'>Navigation Panel</a> at the top of the homepage.</p>
+        <p>Each DLMP product comes with a passcode. Enter that passcode on the product's page to show that you
+          own it, and you can then edit what the page shows.</p>
+        <p>To reach the page, scan the QR code or enter the account ID into the <a
+            href='/#nav-panel'>Go to a page</a> box on the homepage.</p>
       </div>
     </article>
   </div>
   <div class="column is-full">
     <article class="message">
       <div class="message-header">
-        <p>How do change my redirect?</p>
+        <p>How do I change my redirect?</p>
       </div>
       <div class="message-body">
-        <p>To change a redirect you need to navigate to your admin panel.</p>
-        <p>To navigate to your admin panel enter your url's ID into the <a href='/#nav-panel'>Navigation Panel</a> at
-          the top of the homepage and hit <b>Edit</b></p>
+        <p>You set a redirect from your admin panel.</p>
+        <p>To open the admin panel, enter the account ID into the <a href='/#nav-panel'>Go to a page</a> box on
+          the homepage and hit <b>Edit</b>.</p>
         {% if key %}
         <div class="block">
-          <span class="label">You are already logged in!</span>
-          <p>You can edit your webpage through this button,</p>
-          <a href="/{{key}}/admin" class="button is-link">Edit MiroPage</a></p>
+          <span class="label">You are already logged in.</span>
+          <p>You can edit your page with this button:</p>
+          <a href="/{{key}}/admin" class="button is-link">Edit Micro Page</a>
         </div>
         {% endif %}
       </div>
@@ -75,8 +76,8 @@
         <p>What are badges?</p>
       </div>
       <div class="message-body">
-        <p>Badges are non-fundgible tokens minted on the IOTA developmental network. Each badge is unique to the
-          specific digital clone.</p>
+        <p>Badges are non-fungible tokens minted on the IOTA test network. Each badge is unique to a single
+          page.</p>
         <p>Each unique badge has a specific variation of the following attributes:
         <ul>
           <li>Color: The badge color theme.</li>
@@ -108,9 +109,21 @@
         <p>How do I connect DLMP products?</p>
       </div>
       <div class="message-body">
-        <p>Two DLMP endpoints can connect to share badges. To connect you must be logged in when you view another Deep
-          Link Micro Page. At the bottom of the page will be a connect button with the following icon: <i
+        <p>Two DLMP pages can connect to share badges. To connect, log in first, then view another Deep
+          Link Micro Page. At the bottom of that page you will see a connect button with this icon: <i
             class="fas fa-plug"></i></p>
+      </div>
+    </article>
+  </div>
+  <div class="column is-full">
+    <article class="message">
+      <div class="message-header">
+        <p>Who makes these?</p>
+      </div>
+      <div class="message-body">
+        <p>Deep Link Micro Pages started at Y-Que Trading Post, a family screen printing shop in Los Feliz,
+          Los Angeles. The first pages went on shirts printed there. The same idea works for any printed
+          product, not just shirts, so a QR code can go on a hat, a mug, a sticker, or a box.</p>
       </div>
     </article>
   </div>
@@ -120,7 +133,7 @@
         <p>How do I contact you with an issue or feature request?</p>
       </div>
       <div class="message-body">
-        <p>If you have any issues, feature requests or questions please fill out this forum:</p>
+        <p>If you have an issue, a feature request, or a question, please fill out this form:</p>
         {% include 'contact_form.html' %}
       </div>
     </article>

@@ -11,8 +11,16 @@
 <body>
 	<div class="container">
 		<div class="box">
-			<div class="title">Deep Links Micro Pages by YQue.net</div>
-			<div class="subtitle">Please enter an web account key to proceed to a product page or see the example.</div>
+			<div class="title">Deep Link Micro Pages</div>
+			<div class="subtitle">A small web page that travels with a physical thing.</div>
+			<div class="content">
+				<p>Every DLMP product has a QR code printed on it. Scan the code and it opens a small
+					web page tied to that one item. Whoever owns the item owns the page. You can put links,
+					text, and a picture on it, and change them whenever you want.</p>
+				<p>Each product also comes with a passcode. Enter the passcode on your page and you can edit
+					it. There is no sign-up and no email needed. To open a page, scan its QR code or enter its
+					account ID below.</p>
+			</div>
 		</div>
 		<div class="content">
 			{% if error %}
@@ -23,11 +31,10 @@
 					<div class="box">
 						<form id="nav-panel" action='/' method="GET" class="form">
 							<div class="field">
-								<label class="label">Navigation Panel</label>
-								<p>Enter the web account ID to view a specific account. To edit the account you need
-									your passcode.</p>
-								<p>The web account ID is a unique string of numbers and letters in your URL.</p>
-								<input class="input" type="text" name="key" placeholder="Web Account key">
+								<label class="label">Go to a page</label>
+								<p>Enter the account ID to open its page. To edit a page you also need its passcode.</p>
+								<p>The account ID is the short string of letters and numbers in the page's web address.</p>
+								<input class="input" type="text" name="key" placeholder="Account ID">
 							</div>
 							<div class="control">
 								<button type="submit" class="button is-success" name="view">View</button>
@@ -54,8 +61,8 @@
 					<div class="box">
 						<form action='/58c56465b91' method="GET" class="form">
 							<div class="field">
-								<label class="label">Click here for more information</label>
-								<p>The following page provides more infomration about DLMP</p>
+								<label class="label">See an example</label>
+								<p>Open a sample page to see what one looks like.</p>
 							</div>
 							<div class="control">
 								<button class="button is-link is-light">Example Page</button>
@@ -65,8 +72,8 @@
 				</div>
 			</div>
 			<section class="section is-medium">
-				<h1 class="title">About Us</h1>
-				<p class="subtitle">Frequency asked questions about Deep Link Micro Pages.</p>
+				<h1 class="title">Questions</h1>
+				<p class="subtitle">Common questions about Deep Link Micro Pages.</p>
 			</section>
 			{% include 'about_content.html' %}
 		</div>
