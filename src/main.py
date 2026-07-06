@@ -190,7 +190,11 @@ class Badge:
         self.renoun = mongo.db.link.count_documents({'parent_key': self.key})
         self.name = badge['name']
         self.created = badge['time_created']
-        self.influence = int((time.time() - badge['time_created'].timestamp())/10)
+        tc = badge['time_created']
+        if isinstance(tc, str):
+            from datetime import datetime
+            tc = datetime.fromisoformat(tc)
+        self.influence = int((time.time() - tc.timestamp())/10)
     def set_image(self,image):
         self.image = image
         
@@ -479,10 +483,10 @@ class User(UserMixin):
         images.reverse()
         if render:
             for image in images:
-                image['data'] = image['data'].decode('utf-8')
+                image['data'] = image['data'].decode('utf-8') if isinstance(image['data'], bytes) else image['data']
             return images
         return images
-    
+
     def get_image(self):
         if 'display_image' in self.account:
             image = mongo.db.images.find_one({'key': self._id,'_id': self.account['display_image']})
@@ -491,10 +495,10 @@ class User(UserMixin):
             if len(images)==0:
                 return None
             image = images[0]
-            
+
         if image is None: return None
-        
-        image['data'] = image['data'].decode('utf-8')
+
+        image['data'] = image['data'].decode('utf-8') if isinstance(image['data'], bytes) else image['data']
         return image
     
     def set_image(self,image_id):
@@ -528,16 +532,24 @@ class User(UserMixin):
 
     def make_public(self):
         return self.toggle_public()
+    def set_public(self, value=True):
+        """Idempotently set the public flag. Used by the /p/ public auto-login
+        link so repeat visits never flip a public page back to private."""
+        self.refresh()
+        if value and (self.name is None or self.name.strip() == ''):
+            return False
+        mongo.db.users.update_one({'key': self.key}, {'$set': {'public': bool(value)}})
+        self.account['public'] = bool(value)
+        return self.account['public']
     def toggle_public(self):
         self.refresh()
-        #logging.error(f"TESTINDG: {self.name} {self.name is not None}; {self.name.strip()} {self.name.strip() != ''}")
-        if self.name is None or self.name.strip() == '':
-            return False
-        mongo.db.users.update_one({'key': self.key},{'$set': {
-            'public': True
-        }})
-        self.account['public'] = True
-        return self.account['public']        
+        if not self.account.get('public', False):
+            if self.name is None or self.name.strip() == '':
+                return False
+        new_val = not self.account.get('public', False)
+        mongo.db.users.update_one({'key': self.key}, {'$set': {'public': new_val}})
+        self.account['public'] = new_val
+        return self.account['public']
         
     def toggle_notification(self):
         self.refresh()
@@ -601,9 +613,6 @@ def unauthorized_callback():
 @app.route('/unauthorized',methods=["GET"])
 def unauthorize_page():
     next_page = request.args.get('next','/')
-    # Only allow relative paths — block external URLs and protocol-relative URLs
-    if not next_page.startswith('/') or next_page.startswith('//'):
-        next_page = '/'
     return f'You are not allowed to view this page! <meta http-equiv="refresh" content="2; url={next_page}" />'
 
 def unique_hash(data):
@@ -822,19 +831,29 @@ def get_iota_view(key):
 
 
 
+def resolve_admin_user(key):
+    """The User to act as for admin actions.
+
+    Returns the logged-in owner, or an anonymous ``User(key=key)`` when the page
+    is flagged public (public pages are editable without the passkey). ``None``
+    if neither applies.
+    """
+    if current_user.is_authenticated and current_user.key == key:
+        return current_user
+    account = mongo.db.users.find_one({'key': key})
+    if account and account.get('public', False):
+        return User(key=key)
+    return None
+
+
 @app.route('/<key>/admin',methods=['GET'])
 def admin_edit_view(key):
-    if current_user.is_authenticated and current_user.key == key:
-        user = current_user
-    else:
-        account = mongo.db.users.find_one({'key': key})
-        if account and account.get('public', False):
-            user = User(key=key)
-        elif not current_user.is_authenticated:
+    user = resolve_admin_user(key)
+    if user is None:
+        if not current_user.is_authenticated:
             form = LoginForm()
             return render_template('login.html',key=key,form=form,failed=False)
-        else:
-            return redirect(f'/{key}?failed=True')
+        return redirect(f'/{key}?failed=True')
     edit_account_form = EditForm(data=user.account)
     error = request.args.get('error',None)
     image_form = ImageForm()
@@ -859,181 +878,155 @@ def admin_edit_view(key):
 
 @app.route('/<key>/admin',methods=['POST'])
 def admin_edit_account(key):
-    is_owner = current_user.is_authenticated and current_user.key == key
-    page = mongo.db.users.find_one({'key': key})
-    is_public = page and page.get('public', False)
-    if not is_owner and not is_public:
+    user = resolve_admin_user(key)
+    if user is None:
         if not current_user.is_authenticated:
             form = LoginForm()
             return render_template('login.html',key=key,form=form,failed=False)
         return redirect(f'/{key}')
-    if not is_owner and is_public:
-        new_image = request.files.get('image')
-        if new_image and new_image.filename != '':
-            User(key=key).upload_image(new_image)
-        if request.form.get('add_link', False):
-            return redirect(f'/{key}/admin/add/link')
-        if request.form.get('add_text', False):
-            return redirect(f'/{key}/admin/add/text')
-        return redirect(f'/{key}/admin')
-    if current_user.key == key:
-        return_to_edit = request.form.get('edit',False)
-        error_message=None
-        new_image = request.files['image']
-        if new_image.filename == "": new_image=None
-        if new_image is not None:
-            return_to_edit=True
-            current_user.upload_image(new_image)
-        if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
-            return_to_edit=True
-            successful_redirect = current_user.set_redirect()
-            if not successful_redirect:
-                error_message = "Your redirect link was malformed."
-        image = current_user.get_image()
-        image_form = ImageForm()
-        links = current_user.get_links()
-        texts = current_user.get_texts()
-        name = request.form.get('name',current_user.name).strip()
-        phone_number = request.form.get('phone_number','').strip()
-        notify_text = request.form.get('notify_text','').strip()
-        blurb = request.form.get('blurb',current_user.blurb).strip()
-        edit_account_form = EditForm(data=current_user.account)
+    return_to_edit = request.form.get('edit',False)
+    error_message=None
+    new_image = request.files['image']
+    if new_image.filename == "": new_image=None
+    if new_image is not None:
+        return_to_edit=True
+        user.upload_image(new_image)
+    if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
+        return_to_edit=True
+        successful_redirect = user.set_redirect()
+        if not successful_redirect:
+            error_message = "Your redirect link was malformed."
+    image = user.get_image()
+    image_form = ImageForm()
+    links = user.get_links()
+    texts = user.get_texts()
+    name = request.form.get('name',user.name).strip()
+    phone_number = request.form.get('phone_number','').strip()
+    notify_text = request.form.get('notify_text','').strip()
+    blurb = request.form.get('blurb',user.blurb).strip()
+    edit_account_form = EditForm(data=user.account)
 
 
-        # Set the name and subtitle(blurb)
-        if name != '':
-            mongo.db.users.update_one({'key': key},{'$set': {
-                'address': '',
-                'name': name,
-                'blurb': blurb
-            }})
+    # Set the name and subtitle(blurb)
+    if name != '':
+        mongo.db.users.update_one({'key': key},{'$set': {
+            'address': '',
+            'name': name,
+            'blurb': blurb
+        }})
 
-        # Set Phone Number if added
-        if phone_number != '':
-            current_user.phone_number = phone_number
-        current_user.notify_text = notify_text
-        
-        #Return to edit page if they uploaded and image of edit is false
-        #If edit is  True then the person is still editing their page.
-        if return_to_edit:
-            return render_template(
-                'edit_account/edit_account.html',
-                key=key,
-                form=edit_account_form,
-                image_form=image_form,
-                account=current_user.account,
-                error=error_message,
-                notify="Saved!",
-                vapid_public_key=VAPID_PUBLIC_KEY,
-                notify_text = current_user.notify_text,
-                links=links,
-                texts=texts,
-                image=image,
-                deleted=request.args.get('deleted',None),
-            )
-        elif request.form.get('add_link',False):
-            #Return to page because they added a link
-            return redirect(f'/{key}/admin/add/link')
-        elif request.form.get('add_text',False):
-            #Return to page because they added a text blob
-            return redirect(f'/{key}/admin/add/text')
-        else:
-            return redirect(f'/{key}')
+    # Set Phone Number if added
+    if phone_number != '':
+        user.phone_number = phone_number
+    user.notify_text = notify_text
+
+    #Return to edit page if they uploaded and image of edit is false
+    #If edit is  True then the person is still editing their page.
+    if return_to_edit:
+        return render_template(
+            'edit_account/edit_account.html',
+            key=key,
+            form=edit_account_form,
+            image_form=image_form,
+            account=user.account,
+            error=error_message,
+            notify="Saved!",
+            vapid_public_key=VAPID_PUBLIC_KEY,
+            notify_text = user.notify_text,
+            links=links,
+            texts=texts,
+            image=image,
+            deleted=request.args.get('deleted',None),
+        )
+    elif request.form.get('add_link',False):
+        #Return to page because they added a link
+        return redirect(f'/{key}/admin/add/link')
+    elif request.form.get('add_text',False):
+        #Return to page because they added a text blob
+        return redirect(f'/{key}/admin/add/text')
     else:
-        #Possibly add a logout here!
         return redirect(f'/{key}')
     
 #IMAGES
 @app.route('/<key>/admin/images/',methods=['GET','POST'])
 def get_account_images(key):
-    if not _page_is_accessible(key):
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
-    user = User(key=key)
     images = user.get_images()
     return render_template('edit_account/edit_images.html',key=key,account=user.account,images=images)
 
 @app.route('/<key>/admin/del_image/<image_id>',methods=['GET'])
-@login_required
 def delete_account_image(key,image_id):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
-    current_user.del_image(image_id)
-    images = current_user.get_images()
-    return render_template('edit_account/edit_images.html',key=key,account=current_user.account,images=images)
+    user.del_image(image_id)
+    images = user.get_images()
+    return render_template('edit_account/edit_images.html',key=key,account=user.account,images=images)
 
 
 @app.route('/<key>/admin/set_image/<image_id>',methods=['GET'])
-@login_required
 def set_account_image(key,image_id):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
-    current_user.set_image(image_id)
+    user.set_image(image_id)
     return redirect(f'/{key}')
 
 
 #LINK
-def _page_is_accessible(key):
-    """Returns True if the current user is the owner or the page is public."""
-    if current_user.is_authenticated and current_user.key == key:
-        return True
-    page = mongo.db.users.find_one({'key': key})
-    return bool(page and page.get('public', False))
-
 @app.route('/<key>/admin/add/link',methods=['GET'])
 def add_link_view(key):
-    if not _page_is_accessible(key):
+    if resolve_admin_user(key) is None:
         return redirect(f'/{key}')
     form = LinkForm(key=key)
     return render_template('edit_account/add_links.html',key=key,form=form)
 
 def clean_link(string):
-    if not string:
-        return string
-    cleaned = string.replace('"','').replace("'",'')
-    # Block non-http(s) protocols (javascript:, data:, vbscript:, etc.)
-    scheme = cleaned.lower().split(':')[0].strip()
-    if scheme not in ('http', 'https', ''):
-        return ''
-    return cleaned
+    return string.replace('"','').replace("'",'')
 
 @app.route('/<key>/admin/add/link',methods=['POST'])
 def add_link(key):
-    if not _page_is_accessible(key):
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
     content = {
         'title': request.form.get('title',None),
         'link': clean_link(request.form.get('link',None)),
         'action': request.form.get('action',None),
     }
-    User(key=key).add_link(content)
+    user.add_link(content)
     return redirect(f'/{key}/admin')
 
 #TEXT
 @app.route('/<key>/admin/add/text',methods=['GET'])
 def add_text_view(key):
-    if not _page_is_accessible(key):
+    if resolve_admin_user(key) is None:
         return redirect(f'/{key}')
     form = TextForm(key=key)
     return render_template('edit_account/add_text.html',key=key,form=form)
 
 @app.route('/<key>/admin/add/text',methods=['POST'])
 def add_text(key):
-    if not _page_is_accessible(key):
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
     content = {
         'title': request.form.get('title',None),
         'text': request.form.get('text',None),
     }
-    User(key=key).add_text(content)
+    user.add_text(content)
     return redirect(f'/{key}/admin')
 
 @app.route('/<key>/admin/del',methods=['GET'])
 def del_content(key):
-    if not current_user.is_authenticated or current_user.key != key:
+    user = resolve_admin_user(key)
+    if user is None:
         return redirect(f'/{key}')
     _id = request.args.get('q',None)
     _type = request.args.get('type',None)
-    current_user.del_content(_id)
+    user.del_content(_id)
     return redirect(f'/{key}/admin?deleted={_type}')
 
 @app.route('/<key>/mint',methods=['GET'])
@@ -1079,11 +1072,17 @@ def make_page_public(key):
         form = LoginForm()
         return render_template('login.html',key=key,form=form,failed=False)
     elif current_user.key == key:
-        response = current_user.make_public()
-        if response == False:
-            return redirect(f'/{key}/admin?error=Public Issue')
-        else:
+        was_public = current_user.account.get('public', False)
+        current_user.make_public()  # toggles public <-> private
+        now_public = current_user.account.get('public', False)
+        if now_public:
             return redirect(f'/{key}/admin?error=Made Public')
+        elif was_public:
+            # successfully toggled public -> private (not a failure)
+            return redirect(f'/{key}/admin?error=Made Private')
+        else:
+            # tried to go public but couldn't — a title is required first
+            return redirect(f'/{key}/admin?error=Add a title first to make this page public')
     return redirect(f'/{key}')
 
 
@@ -1134,12 +1133,7 @@ def send_notification(key):
         return jsonify(sent=sent, total=total)   # JS caller
     else:
         flash(f"Sent to {sent} subscribers", "success") # Flask-Flash example
-        referrer = request.referrer
-        if referrer:
-            parsed = urlparse(referrer)
-            if parsed.netloc and parsed.netloc != request.host:
-                referrer = None
-        return redirect(referrer or f'/{key}')
+        return redirect(request.referrer or f'/{key}?error="Notified!"')
 
 
 #LOGIN TO PROFILE
@@ -1149,7 +1143,7 @@ def complete_login(key,passkey,view=False,make_public=False):
         User.create_user(key)
         
         if make_public:
-            current_user.make_public()
+            current_user.set_public(True)
         if view:
             return redirect(f'/{key}')
         else:

@@ -88,6 +88,10 @@
 				<div class="column is-narrow">
 					<a href="/{{key}}/admin/make/public/verify"><span class="button is-link">Make Page Public</span></a>
 				</div>
+				{% else %}
+				<div class="column is-narrow">
+					<a href="/{{key}}/admin/make/public"><span class="button is-warning">Make Page Private</span></a>
+				</div>
 				{% endif %}
 			</div>
 		</div>
