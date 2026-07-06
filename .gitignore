@@ -10,3 +10,7 @@ emails/
 src/tmp_static/
 *vapid*
 \#**\#
+CLAUDE.md
+# Manual backups (added 2026-07-06)
+backup_2026-04-10/
+*.bak-*
