@@ -275,6 +275,13 @@ class User(UserMixin):
     @staticmethod
     def fix_link(link_obj):
         link = link_obj['link']
+        if not is_link_scheme_safe(link):
+            # Defense in depth: never render a dangerous scheme (e.g. a
+            # javascript:/data: URI that predates the scheme validation
+            # added to add_link(), or that reached storage some other
+            # way) as a live href.
+            link_obj['link'] = '#'
+            return link_obj
         if '//' not in link and '.' in link:
             link_obj['link'] = '//'+link
         return link_obj
@@ -616,6 +623,74 @@ def validate_redirect_url(url):
     return True
 
 
+def is_link_scheme_safe(link):
+    """Is `link` safe to store/render as an <a href> in the add-link feature?
+
+    Reuses the same http(s) scheme allowlist as `validate_redirect_url`
+    (an allowlist, not a blocklist, since blocklists are trivially
+    bypassed with case tricks, whitespace, or lesser-known dangerous
+    schemes like vbscript:). A link with no scheme at all - e.g. a bare
+    "example.com" - is left alone: it can never execute script, and
+    `User.fix_link` normalizes it to a protocol-relative href at render
+    time. That bare-domain style predates this validation and existing
+    stored links rely on it, so it stays allowed for both old and new
+    links.
+    """
+    if not link or not isinstance(link, str):
+        return False
+    if re.search(r'\s', link):
+        return False
+    if not urlparse(link).scheme:
+        return True
+    return validate_redirect_url(link)
+
+
+def is_safe_relative_redirect(path):
+    """Is `path` safe to use as a same-site redirect target (e.g. the
+    `next` param on /unauthorized)?
+
+    Only bare, single-leading-slash relative paths are accepted:
+      * must start with "/" but not "//" (protocol-relative URLs resolve
+        to an external host using the current scheme);
+      * no backslash (some browsers normalize "\" to "/" in a URL, so
+        "/\\evil.com" can behave like "//evil.com");
+      * no scheme or netloc component once parsed (guards against odd
+        edge cases urlparse can produce beyond the leading-slash check).
+    Anything else - an absolute URL, a protocol-relative URL, or a
+    scheme like javascript: - is rejected.
+    """
+    if not path or not isinstance(path, str):
+        return False
+    if re.search(r'\s', path):
+        return False
+    if '\\' in path:
+        return False
+    if not path.startswith('/') or path.startswith('//'):
+        return False
+    parsed = urlparse(path)
+    if parsed.scheme or parsed.netloc:
+        return False
+    return True
+
+
+def is_same_origin_referrer(referrer):
+    """Is `referrer` safe to redirect to (e.g. after posting to /notify)?
+
+    `request.referrer` is just the Referer header, which is fully
+    attacker-controlled on a cross-site request - a malicious page can
+    set its own URL as the Referer and turn a "redirect back to where
+    you came from" endpoint into an open-redirect phishing bounce. Only
+    a same-host referrer (or a relative one, which is same-origin by
+    construction) is followed.
+    """
+    if not referrer:
+        return False
+    parsed = urlparse(referrer)
+    if not parsed.netloc:
+        return True
+    return parsed.netloc.lower() == request.host.lower()
+
+
 #@app.route('/refresh_links/',methods=['GET'])
 def refresh_links():
     for user in mongo.db.users.find({'friends': {'$exists': True}}):
@@ -641,6 +716,8 @@ def unauthorized_callback():
 @app.route('/unauthorized',methods=["GET"])
 def unauthorize_page():
     next_page = request.args.get('next','/')
+    if not is_safe_relative_redirect(next_page):
+        next_page = '/'
     return f'You are not allowed to view this page! <meta http-equiv="refresh" content="2; url={next_page}" />'
 
 def unique_hash(data):
@@ -1013,9 +1090,16 @@ def add_link_view(key):
     if resolve_admin_user(key) is None:
         return redirect(f'/{key}')
     form = LinkForm(key=key)
-    return render_template('edit_account/add_links.html',key=key,form=form)
+    error = request.args.get('error',None)
+    return render_template('edit_account/add_links.html',key=key,form=form,error=error)
 
 def clean_link(string):
+    """Strip quote characters from a raw link string.
+
+    This alone is NOT sufficient to make a link safe to render as an
+    href - see `is_link_scheme_safe`, applied separately at save time in
+    add_link(), which rejects javascript:/data: URIs.
+    """
     return string.replace('"','').replace("'",'')
 
 @app.route('/<key>/admin/add/link',methods=['POST'])
@@ -1023,9 +1107,12 @@ def add_link(key):
     user = resolve_admin_user(key)
     if user is None:
         return redirect(f'/{key}')
+    link = clean_link(request.form.get('link','') or '')
+    if not is_link_scheme_safe(link):
+        return redirect(f'/{key}/admin/add/link?error=That link is not allowed (only http/https links are accepted).')
     content = {
         'title': request.form.get('title',None),
-        'link': clean_link(request.form.get('link',None)),
+        'link': link,
         'action': request.form.get('action',None),
     }
     user.add_link(content)
@@ -1165,7 +1252,9 @@ def send_notification(key):
         return jsonify(sent=sent, total=total)   # JS caller
     else:
         flash(f"Sent to {sent} subscribers", "success") # Flask-Flash example
-        return redirect(request.referrer or f'/{key}?error="Notified!"')
+        if is_same_origin_referrer(request.referrer):
+            return redirect(request.referrer)
+        return redirect('/')
 
 
 #LOGIN TO PROFILE
