@@ -6,9 +6,11 @@ To avoid the obligations of creating a full system that crops images we are goin
 Store the data of the image into a mongodb blob instead of storing in a file system so the images in the future can scale.
 
 
-# Redirect
+# Redirect (DONE - 2026-07-06)
 Add a field to force a redirect of your DLMP. This would make your DLMP QR code link to any other service you want giving you full control of your micro page.
 ## Restrictions
 We need to allow some system that allows owers to remove the redirect. This might include on the front page a jump to admin page
+- Done: owners see a banner on their own page (`account.html`) linking to `/<key>/admin`, and the admin page has a "Clear Redirect" button (`edit_account/add_redirect.html`) that unsets the field.
 ## Addition
 The redirect could possibly lead to malicious content so it might be wise to wrap the url entry with a empty filter so in the future it has to pass regex tests.
+- Done: `validate_redirect_url()` in `src/main.py` allowlists `http`/`https` schemes only (rejects `javascript:`, `data:`, etc.), requires a real hostname, rejects whitespace/control characters, and rejects embedded credentials (`user:pass@host`). The public page view (`get_iota_view`) issues a real server-side 302 to the stored URL for non-owner visitors only if it still passes validation.

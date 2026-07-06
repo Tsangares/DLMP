@@ -13,7 +13,7 @@ except ImportError:
 from PIL import Image,ImageFont,ImageDraw
 
 from werkzeug.middleware.proxy_fix import ProxyFix
-import json,os,hashlib,datetime,time,logging
+import json,os,re,hashlib,datetime,time,logging
 import flask,requests,pymongo,base64,math
 from flask import Blueprint,Flask,request,redirect,render_template,session,flash,abort,make_response,send_file, jsonify
 from flask_pymongo import PyMongo
@@ -575,7 +575,8 @@ class User(UserMixin):
             self.account['redirect'] = ""
             return True
         elif link is not None:
-            if validate_link(link):
+            link = link.strip()
+            if validate_redirect_url(link):
                 mongo.db.users.update_one({'key': self.key},{'$set': {
                     'redirect': link
                 }},upsert=True)
@@ -583,9 +584,36 @@ class User(UserMixin):
                 return True
             else: return False
         return False
-            
-def validate_link(link):
-    return r'https://' in link.lower() and r'.' in link.lower()
+
+REDIRECT_ALLOWED_SCHEMES = {'http', 'https'}
+
+def validate_redirect_url(url):
+    """Validate a URL entered as a DLMP page's permanent redirect.
+
+    Only plain http(s) links with a real hostname are accepted. This
+    rejects dangerous schemes (javascript:, data:, file:, etc, via an
+    allowlist rather than a blocklist), whitespace/control characters
+    that could be used to smuggle or misrepresent a URL, and links with
+    embedded credentials (e.g. https://user:pass@evil.com) which are a
+    classic way to disguise a redirect's true destination.
+    """
+    if not url or not isinstance(url, str):
+        return False
+    # Whitespace/control characters anywhere in the raw string are rejected
+    # outright rather than stripped, since they're never legitimate here.
+    if re.search(r'\s', url):
+        return False
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme.lower() not in REDIRECT_ALLOWED_SCHEMES:
+        return False
+    if not parsed.hostname:
+        return False
+    if parsed.username or parsed.password:
+        return False
+    return True
 
 
 #@app.route('/refresh_links/',methods=['GET'])
@@ -789,6 +817,10 @@ def get_iota_view(key):
         return render_template('login.html',key=key,form=form,failed=False)
     elif 'name' not in account:
         return redirect(f'/{key}/admin')
+    is_owner = current_user.is_authenticated and current_user.key == key
+    redirect_url = account.get('redirect')
+    if redirect_url and not is_owner and validate_redirect_url(redirect_url):
+        return redirect(redirect_url, code=302)
     csrf_token = generate_csrf()
     name = account.get('name',None)
     blurb = account.get('blurb',None)
