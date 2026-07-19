@@ -955,6 +955,17 @@ def resolve_admin_user(key):
     return None
 
 
+def is_page_owner(key):
+    """True only for the authenticated passkey owner of this page.
+
+    Public pages are append-only for anonymous visitors: they can add links,
+    text, and images, but deleting or editing existing content is owner-only.
+    The owner (logged in with the passkey) keeps full control, so they can
+    still moderate a public page.
+    """
+    return current_user.is_authenticated and current_user.key == key
+
+
 @app.route('/<key>/admin',methods=['GET'])
 def admin_edit_view(key):
     user = resolve_admin_user(key)
@@ -993,41 +1004,48 @@ def admin_edit_account(key):
             form = LoginForm()
             return render_template('login.html',key=key,form=form,failed=False)
         return redirect(f'/{key}')
+    owner = is_page_owner(key)
     return_to_edit = request.form.get('edit',False)
     error_message=None
     new_image = request.files['image']
     if new_image.filename == "": new_image=None
     if new_image is not None:
+        # Uploading an image is an append -> allowed for public visitors too.
         return_to_edit=True
         user.upload_image(new_image)
-    if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
-        return_to_edit=True
-        successful_redirect = user.set_redirect()
-        if not successful_redirect:
-            error_message = "Your redirect link was malformed."
+
+    # Everything below edits EXISTING page state (redirect, name, subtitle,
+    # phone, notification text). Public pages are append-only, so these are
+    # owner-only. Anonymous visitors keep any current values unchanged.
+    if owner:
+        if request.form.get('set_redirect',False) or request.form.get('del_redirect',False):
+            return_to_edit=True
+            successful_redirect = user.set_redirect()
+            if not successful_redirect:
+                error_message = "Your redirect link was malformed."
+        name = request.form.get('name',user.name).strip()
+        phone_number = request.form.get('phone_number','').strip()
+        notify_text = request.form.get('notify_text','').strip()
+        blurb = request.form.get('blurb',user.blurb).strip()
+
+        # Set the name and subtitle(blurb)
+        if name != '':
+            mongo.db.users.update_one({'key': key},{'$set': {
+                'address': '',
+                'name': name,
+                'blurb': blurb
+            }})
+
+        # Set Phone Number if added
+        if phone_number != '':
+            user.phone_number = phone_number
+        user.notify_text = notify_text
+
     image = user.get_image()
     image_form = ImageForm()
     links = user.get_links()
     texts = user.get_texts()
-    name = request.form.get('name',user.name).strip()
-    phone_number = request.form.get('phone_number','').strip()
-    notify_text = request.form.get('notify_text','').strip()
-    blurb = request.form.get('blurb',user.blurb).strip()
     edit_account_form = EditForm(data=user.account)
-
-
-    # Set the name and subtitle(blurb)
-    if name != '':
-        mongo.db.users.update_one({'key': key},{'$set': {
-            'address': '',
-            'name': name,
-            'blurb': blurb
-        }})
-
-    # Set Phone Number if added
-    if phone_number != '':
-        user.phone_number = phone_number
-    user.notify_text = notify_text
 
     #Return to edit page if they uploaded and image of edit is false
     #If edit is  True then the person is still editing their page.
@@ -1067,20 +1085,21 @@ def get_account_images(key):
 
 @app.route('/<key>/admin/del_image/<image_id>',methods=['GET'])
 def delete_account_image(key,image_id):
-    user = resolve_admin_user(key)
-    if user is None:
-        return redirect(f'/{key}')
-    user.del_image(image_id)
-    images = user.get_images()
-    return render_template('edit_account/edit_images.html',key=key,account=user.account,images=images)
+    # Deleting is owner-only; public pages are append-only.
+    if not is_page_owner(key):
+        return redirect(f'/{key}/admin?error=This page is public and append-only, so images cannot be deleted')
+    current_user.del_image(image_id)
+    images = current_user.get_images()
+    return render_template('edit_account/edit_images.html',key=key,account=current_user.account,images=images)
 
 
 @app.route('/<key>/admin/set_image/<image_id>',methods=['GET'])
 def set_account_image(key,image_id):
-    user = resolve_admin_user(key)
-    if user is None:
+    # Changing which image is displayed edits existing state -> owner-only.
+    # (A freshly uploaded image auto-displays via upload_image.)
+    if not is_page_owner(key):
         return redirect(f'/{key}')
-    user.set_image(image_id)
+    current_user.set_image(image_id)
     return redirect(f'/{key}')
 
 
@@ -1140,12 +1159,12 @@ def add_text(key):
 
 @app.route('/<key>/admin/del',methods=['GET'])
 def del_content(key):
-    user = resolve_admin_user(key)
-    if user is None:
-        return redirect(f'/{key}')
+    # Deleting is owner-only; public pages are append-only.
+    if not is_page_owner(key):
+        return redirect(f'/{key}/admin?error=This page is public and append-only, so items cannot be deleted')
     _id = request.args.get('q',None)
     _type = request.args.get('type',None)
-    user.del_content(_id)
+    current_user.del_content(_id)
     return redirect(f'/{key}/admin?deleted={_type}')
 
 @app.route('/<key>/mint',methods=['GET'])

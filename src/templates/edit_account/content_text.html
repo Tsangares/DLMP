@@ -10,7 +10,7 @@
 <tr>
   <td>{{text.title}}</td>
   <td>{{text.text}}</td>
-  <td><a class="is-danger" href="/{{key}}/admin/del?q={{text._id}}&type=text"><class="button"><i class="fas fa-times"></i></a></td>
+  <td>{% if not account.public or (current_user.is_authenticated and current_user.key == key) %}<a class="is-danger" href="/{{key}}/admin/del?q={{text._id}}&type=text"><class="button"><i class="fas fa-times"></i></a>{% endif %}</td>
 </tr>
 {% endfor %}
 {% endblock %}

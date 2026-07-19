@@ -29,10 +29,12 @@
                     <div class="card-content">
                         <label class="label">Date</label><time datetime="{{image.time_created}}">{{image.time_created|strftime}}</time>
                     </div>
+                    {% if not account.public or (current_user.is_authenticated and current_user.key == key) %}
                     <footer class="card-footer">
                         <a href="/{{key}}/admin/set_image/{{image._id}}" class="card-footer-item">Set as Image</a>
                         <a href="/{{key}}/admin/del_image/{{image._id}}" class="card-footer-item">Delete</a>
                     </footer>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
